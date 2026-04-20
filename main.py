@@ -120,23 +120,28 @@ def ingredient_info(request: IngredientRequest):
 
     prompt = f"""You are a culinary historian and nutritionist expert.
 
-Provide rich information about the ingredient: "{request.ingredient}"
+Search the web to find accurate, up-to-date information about the ingredient: "{request.ingredient}"
+Use your search results to ground your response in real sources.
 Respond in {request.language}.
 
-Return ONLY valid JSON with this exact structure:
+Return ONLY valid JSON with this exact structure — no markdown, no extra text:
 {{
   "name": "string",
-  "description": "string (2-3 rich paragraphs)",
+  "description": "string (2-3 rich paragraphs drawing from what you found)",
   "origin": "string",
-  "nutritional_highlights": "string",
-  "history": "string (2 paragraphs of fascinating historical context)",
+  "nutritional_highlights": "string (cite specific values where found)",
+  "history": "string (2 paragraphs of historically accurate context from real sources)",
   "best_season": "string",
   "selection_tips": "string",
   "storage_tips": "string",
-  "fun_fact": "string (one surprising little-known fact)"
+  "fun_fact": "string (one surprising fact verified from a real source)"
 }}"""
 
-    response = client.responses.create(model="gpt-4.1-mini", input=prompt)
+    response = client.responses.create(
+        model="gpt-4.1-mini",
+        tools=[{"type": "web_search_preview"}],
+        input=prompt,
+    )
     raw_text = response.output_text
 
     try:
@@ -153,12 +158,14 @@ def ingredient_markets(request: IngredientRequest):
         raise HTTPException(status_code=400, detail="Ingredient cannot be empty")
 
     location_context = f"near {request.location}" if request.location else "in a typical city"
+    location_search  = f"in {request.location}" if request.location else "at farmers markets and specialty stores"
 
     prompt = f"""You are a local food sourcing expert helping people find fresh, high-quality ingredients.
 
-The user wants to find: "{request.ingredient}" {location_context}
+Search the web to find real, current places to buy "{request.ingredient}" {location_search}.
+Look for actual farmers markets, ethnic grocery stores, food co-ops, and specialty shops — not big chains.
 
-Suggest ONLY these types of sources:
+Focus ONLY on these source types:
 - Farmers markets and farm stands
 - Chinese / Asian supermarkets
 - Korean markets (like H Mart)
@@ -170,16 +177,16 @@ Suggest ONLY these types of sources:
 - CSA (Community Supported Agriculture) farm boxes
 - Local independent grocers known for fresh produce
 
-Do NOT suggest large chain supermarkets (Walmart, Target, Kroger, etc.)
+Do NOT suggest Walmart, Target, Kroger, Safeway, or similar large chains.
 Respond in {request.language}.
 
-Return ONLY valid JSON:
+Return ONLY valid JSON — no markdown, no extra text:
 {{
   "ingredient": "string",
   "sources": [
     {{
       "type": "string",
-      "description": "string",
+      "description": "string (include real store names or market names if found online)",
       "why_quality": "string",
       "what_to_look_for": "string",
       "typical_availability": "string",
@@ -188,12 +195,16 @@ Return ONLY valid JSON:
   ],
   "seasonal_advice": "string",
   "quality_indicators": "string",
-  "sourcing_tip": "string"
+  "sourcing_tip": "string (a specific real-world tip from your search)"
 }}
 
-Provide 3-5 most relevant source types for this ingredient."""
+Provide 3-5 most relevant source types."""
 
-    response = client.responses.create(model="gpt-4.1-mini", input=prompt)
+    response = client.responses.create(
+        model="gpt-4.1-mini",
+        tools=[{"type": "web_search_preview"}],
+        input=prompt,
+    )
     raw_text = response.output_text
 
     try:
@@ -209,13 +220,17 @@ def ingredient_recipes(request: IngredientRequest):
     if not request.ingredient.strip():
         raise HTTPException(status_code=400, detail="Ingredient cannot be empty")
 
-    prompt = f"""You are a culinary historian with encyclopedic knowledge of recipes from ancient times to today.
+    prompt = f"""You are a culinary historian researching real recipes for "{request.ingredient}".
 
-For the ingredient: "{request.ingredient}"
-Provide recipes spanning human culinary history.
+Search the web for:
+- Documented historical recipes using "{request.ingredient}" from ancient, medieval, and pre-modern sources
+- Real traditional cooking methods and techniques from different cultures
+- Authentic modern recipes from reputable food sites, chefs, or culinary publications
+
+Use your search results to provide accurate, sourced recipes spanning human culinary history.
 Respond in {request.language}.
 
-Return ONLY valid JSON:
+Return ONLY valid JSON — no markdown, no extra text:
 {{
   "ingredient": "string",
   "historical_recipes": [
@@ -225,9 +240,9 @@ Return ONLY valid JSON:
       "period": "string (e.g., '3000 BCE', '700s CE', '1300s AD')",
       "region": "string",
       "description": "string",
-      "historical_context": "string",
+      "historical_context": "string (include source or reference if found)",
       "ingredients_summary": "string",
-      "method": "string"
+      "method": "string (authentic traditional technique)"
     }}
   ],
   "modern_recipes": [
@@ -241,9 +256,13 @@ Return ONLY valid JSON:
   ]
 }}
 
-Provide 4-5 historical recipes spanning different eras and world regions (at least 1000 years of history), and 2-3 modern recipes."""
+Provide 4-5 historical recipes spanning different eras and world regions (covering at least 1000 years), and 2-3 modern recipes."""
 
-    response = client.responses.create(model="gpt-4.1-mini", input=prompt)
+    response = client.responses.create(
+        model="gpt-4.1-mini",
+        tools=[{"type": "web_search_preview"}],
+        input=prompt,
+    )
     raw_text = response.output_text
 
     try:
