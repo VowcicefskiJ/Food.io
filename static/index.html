@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Food.io — Discover Ingredients &amp; Recipes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<!-- ========== HEADER ========== -->
+<header class="header">
+  <div class="container header-inner">
+    <a class="logo" href="/">
+      <svg class="logo-icon" width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <path d="M14 2C7.373 2 2 7.373 2 14s5.373 12 12 12 12-5.373 12-12S20.627 2 14 2z" fill="#2E6B28" opacity=".15"/>
+        <path d="M14 6c-1.5 3-2 5.5-1 8 1 2.5 3 4 3 6" stroke="#2E6B28" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M10 10c1 1 2.5 2 4 2" stroke="#2E6B28" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M18 8c-1 1.5-2 3-4 4" stroke="#2E6B28" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      Food.io
+    </a>
+    <nav class="nav">
+      <a href="#explore" class="nav-link">Explore</a>
+      <a href="#meal-planner" class="nav-link">Meal Planner</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <!-- ========== HERO ========== -->
+  <section class="hero" id="explore">
+    <div class="hero-bg-pattern"></div>
+    <div class="container hero-inner">
+      <div class="hero-content">
+        <p class="hero-eyebrow">Real food, real sources, real history</p>
+        <h1 class="hero-title">From Ancient<br/>Recipes to<br/>Local Farms</h1>
+        <p class="hero-subtitle">Search any ingredient — discover where to source it fresh near you, and explore recipes spanning thousands of years of culinary history.</p>
+        <div class="hero-stats">
+          <div class="stat"><span class="stat-num">1000s</span><span class="stat-label">of Years of Recipes</span></div>
+          <div class="stat-divider"></div>
+          <div class="stat"><span class="stat-num">Local</span><span class="stat-label">Quality Sources Only</span></div>
+          <div class="stat-divider"></div>
+          <div class="stat"><span class="stat-num">Global</span><span class="stat-label">Culinary Traditions</span></div>
+        </div>
+      </div>
+
+      <div class="search-card" id="search-card">
+        <div class="search-card-header">
+          <h2 class="search-card-title">Find an Ingredient</h2>
+          <p class="search-card-sub">Get sourcing tips, history &amp; recipes</p>
+        </div>
+        <div class="search-fields">
+          <div class="field-group">
+            <label class="field-label" for="ingredientInput">Ingredient</label>
+            <input
+              type="text"
+              id="ingredientInput"
+              class="field-input"
+              placeholder="e.g. turmeric, miso, saffron, farro..."
+              autocomplete="off"
+              onkeydown="if(event.key==='Enter') searchIngredient()"
+            />
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="locationInput">
+              Your Location <span class="label-optional">(optional)</span>
+            </label>
+            <input
+              type="text"
+              id="locationInput"
+              class="field-input"
+              placeholder="City or neighborhood..."
+              autocomplete="off"
+              onkeydown="if(event.key==='Enter') searchIngredient()"
+            />
+          </div>
+        </div>
+        <button class="btn-primary" onclick="searchIngredient()" id="searchBtn">
+          <span id="searchBtnLabel">Explore Ingredient</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== RESULTS ========== -->
+  <section class="results-section" id="resultsSection" style="display:none">
+    <div class="container">
+
+      <div class="ingredient-heading" id="ingredientHeading"></div>
+
+      <div class="tabs-bar" id="tabsBar">
+        <button class="tab-btn active" data-tab="overview" onclick="switchTab('overview')">Overview</button>
+        <button class="tab-btn" data-tab="markets" onclick="switchTab('markets')">Where to Find</button>
+        <button class="tab-btn" data-tab="recipes" onclick="switchTab('recipes')">Recipes Through Time</button>
+      </div>
+
+      <div class="tab-pane active" id="overview-pane">
+        <div id="overviewContent"></div>
+      </div>
+      <div class="tab-pane" id="markets-pane">
+        <div id="marketsContent"></div>
+      </div>
+      <div class="tab-pane" id="recipes-pane">
+        <div id="recipesContent"></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========== MEAL PLANNER ========== -->
+  <section class="planner-section" id="meal-planner">
+    <div class="container">
+      <div class="section-header">
+        <p class="section-eyebrow">Traditional Cooking</p>
+        <h2 class="section-title">Meal Planner</h2>
+        <p class="section-subtitle">Tell us what you have — we'll suggest authentic dishes from culinary traditions around the world.</p>
+      </div>
+
+      <div class="planner-card">
+        <div class="field-group" style="margin-bottom:20px">
+          <label class="field-label">Ingredients you have</label>
+          <div class="tag-input-wrap" id="tagWrap" onclick="document.getElementById('tagRawInput').focus()">
+            <div id="tagList"></div>
+            <input
+              type="text"
+              id="tagRawInput"
+              class="tag-raw-input"
+              placeholder="Type and press Enter..."
+              onkeydown="handleTagInput(event)"
+            />
+          </div>
+        </div>
+        <div class="planner-row">
+          <div class="field-group">
+            <label class="field-label" for="mealType">Meal Type</label>
+            <select id="mealType" class="field-select">
+              <option value="breakfast">Breakfast</option>
+              <option value="lunch">Lunch</option>
+              <option value="dinner" selected>Dinner</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="mealLanguage">Language</label>
+            <select id="mealLanguage" class="field-select">
+              <option value="English">English</option>
+              <option value="Spanish">Spanish</option>
+              <option value="French">French</option>
+              <option value="Japanese">Japanese</option>
+              <option value="Chinese">Chinese</option>
+              <option value="Arabic">Arabic</option>
+              <option value="Italian">Italian</option>
+              <option value="Portuguese">Portuguese</option>
+              <option value="Korean">Korean</option>
+            </select>
+          </div>
+          <button class="btn-primary planner-btn" onclick="planMeal()" id="planBtn">
+            <span id="planBtnLabel">Get Suggestions</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div id="mealResults"></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ========== FOOTER ========== -->
+<footer class="footer">
+  <div class="container footer-inner">
+    <span class="footer-logo">Food.io</span>
+    <p class="footer-tagline">Connecting people to real food, real history, real sources.</p>
+  </div>
+</footer>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
