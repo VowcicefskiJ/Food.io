@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "Food.io",
+    "slug": "food-io",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#1B3B1A"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.foodio.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#1B3B1A"
+      },
+      "package": "com.foodio.app"
+    }
+  }
+}
