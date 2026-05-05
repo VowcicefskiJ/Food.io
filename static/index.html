@@ -96,16 +96,33 @@
       <div class="ingredient-heading" id="ingredientHeading"></div>
 
       <div class="tabs-bar" id="tabsBar">
-        <button class="tab-btn active" data-tab="overview" onclick="switchTab('overview')">Overview</button>
-        <button class="tab-btn" data-tab="markets" onclick="switchTab('markets')">Where to Find</button>
-        <button class="tab-btn" data-tab="recipes" onclick="switchTab('recipes')">Recipes Through Time</button>
+        <button class="tab-btn active" data-tab="overview"     onclick="switchTab('overview')">Overview</button>
+        <button class="tab-btn"        data-tab="cooking"      onclick="switchTab('cooking')">Cook It Right</button>
+        <button class="tab-btn"        data-tab="authenticity" onclick="switchTab('authenticity')">Real or Fake</button>
+        <button class="tab-btn"        data-tab="markets"      onclick="switchTab('markets')">Where to Find</button>
+        <button class="tab-btn"        data-tab="grow"         onclick="switchTab('grow')">Grow It</button>
+        <button class="tab-btn"        data-tab="preserve"     onclick="switchTab('preserve')">Preserve &amp; Store</button>
+        <button class="tab-btn"        data-tab="recipes"      onclick="switchTab('recipes')">Recipes Through Time</button>
       </div>
 
       <div class="tab-pane active" id="overview-pane">
+        <div class="ingredient-photo-slot" id="ingredientImageSlot" style="display:none"></div>
         <div id="overviewContent"></div>
+      </div>
+      <div class="tab-pane" id="cooking-pane">
+        <div id="cookingContent"></div>
+      </div>
+      <div class="tab-pane" id="authenticity-pane">
+        <div id="authenticityContent"></div>
       </div>
       <div class="tab-pane" id="markets-pane">
         <div id="marketsContent"></div>
+      </div>
+      <div class="tab-pane" id="grow-pane">
+        <div id="growContent"></div>
+      </div>
+      <div class="tab-pane" id="preserve-pane">
+        <div id="preserveContent"></div>
       </div>
       <div class="tab-pane" id="recipes-pane">
         <div id="recipesContent"></div>

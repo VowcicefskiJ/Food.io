@@ -43,21 +43,45 @@ async function searchIngredient() {
   switchTab('overview');
 
   // Reset all panes to loading
-  document.getElementById('overviewContent').innerHTML = loadingHtml('Loading ingredient info...');
-  document.getElementById('marketsContent').innerHTML  = loadingHtml('Finding the best local sources...');
-  document.getElementById('recipesContent').innerHTML  = loadingHtml('Searching through centuries of history...');
+  const imgSlot = document.getElementById('ingredientImageSlot');
+  if (imgSlot) { imgSlot.innerHTML = ''; imgSlot.style.display = 'none'; }
+  document.getElementById('overviewContent').innerHTML     = loadingHtml('Loading ingredient info...');
+  document.getElementById('cookingContent').innerHTML      = loadingHtml('Studying how to cook it right...');
+  document.getElementById('authenticityContent').innerHTML = loadingHtml('Investigating fakes and the real thing...');
+  document.getElementById('marketsContent').innerHTML      = loadingHtml('Finding the best local sources...');
+  document.getElementById('growContent').innerHTML         = loadingHtml('Researching how to grow it...');
+  document.getElementById('preserveContent').innerHTML     = loadingHtml('Looking up storage and preservation...');
+  document.getElementById('recipesContent').innerHTML      = loadingHtml('Searching through centuries of history...');
 
   section.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-  // Fire all three fetches in parallel
+  // Fire all fetches in parallel
   await Promise.all([
     doFetchInfo(ingredient),
+    doFetchImage(ingredient),
+    doFetchCooking(ingredient),
+    doFetchAuthenticity(ingredient),
     doFetchMarkets(ingredient, location || null),
+    doFetchCultivation(ingredient),
+    doFetchPreservation(ingredient),
     doFetchRecipes(ingredient),
   ]);
 
   btn.disabled = false;
   lbl.textContent = 'Explore Ingredient';
+}
+
+async function doFetchImage(ingredient) {
+  try {
+    const data = await post('/ingredient/image', { ingredient, language: 'English' });
+    if (data && data.image_url) {
+      const slot = document.getElementById('ingredientImageSlot');
+      if (slot) {
+        slot.innerHTML = `<img class="ingredient-photo" src="${escAttr(data.image_url)}" alt="${escAttr(ingredient)}" onerror="this.parentElement.style.display='none'"/>`;
+        slot.style.display = 'block';
+      }
+    }
+  } catch (_) { /* image is best-effort */ }
 }
 
 async function doFetchInfo(ingredient) {
@@ -66,6 +90,42 @@ async function doFetchInfo(ingredient) {
     renderOverview(data);
   } catch (e) {
     document.getElementById('overviewContent').innerHTML = errorHtml(e.message);
+  }
+}
+
+async function doFetchCooking(ingredient) {
+  try {
+    const data = await post('/ingredient/cooking', { ingredient, language: 'English' });
+    renderCooking(data);
+  } catch (e) {
+    document.getElementById('cookingContent').innerHTML = errorHtml(e.message);
+  }
+}
+
+async function doFetchAuthenticity(ingredient) {
+  try {
+    const data = await post('/ingredient/authenticity', { ingredient, language: 'English' });
+    renderAuthenticity(data);
+  } catch (e) {
+    document.getElementById('authenticityContent').innerHTML = errorHtml(e.message);
+  }
+}
+
+async function doFetchCultivation(ingredient) {
+  try {
+    const data = await post('/ingredient/cultivation', { ingredient, language: 'English' });
+    renderCultivation(data);
+  } catch (e) {
+    document.getElementById('growContent').innerHTML = errorHtml(e.message);
+  }
+}
+
+async function doFetchPreservation(ingredient) {
+  try {
+    const data = await post('/ingredient/preservation', { ingredient, language: 'English' });
+    renderPreservation(data);
+  } catch (e) {
+    document.getElementById('preserveContent').innerHTML = errorHtml(e.message);
   }
 }
 
@@ -133,6 +193,250 @@ function renderOverview(d) {
       </div>` : ''}
 
     </div>
+  `;
+}
+
+// =========================================
+// RENDER — COOKING
+// =========================================
+
+function renderCooking(d) {
+  const methods = (d.primary_methods || []).map(m => `
+    <div class="method-card">
+      <div class="method-head">
+        <span class="method-pill">${escHtml(m.method || '')}</span>
+        ${m.time_and_temp ? `<span class="method-temp">🕒 ${escHtml(m.time_and_temp)}</span>` : ''}
+      </div>
+      ${m.why_it_works ? `<p class="method-why"><span class="md-bold">Why it works: </span>${escHtml(m.why_it_works)}</p>` : ''}
+      ${m.step_by_step ? `<div class="recipe-section"><div class="recipe-section-label">Steps</div><div class="recipe-section-text">${escHtml(m.step_by_step)}</div></div>` : ''}
+      ${m.doneness_cues ? `<div class="recipe-section"><div class="recipe-section-label">Doneness Cues</div><div class="recipe-section-text">${escHtml(m.doneness_cues)}</div></div>` : ''}
+    </div>
+  `).join('');
+
+  const mistakes = (d.common_mistakes || []).map(m => `<li>${escHtml(m)}</li>`).join('');
+
+  document.getElementById('cookingContent').innerHTML = `
+    ${d.preparation ? `
+    <div class="insight-strip">
+      <div class="card-label">Preparation</div>
+      <div class="card-body">${escHtml(d.preparation)}</div>
+    </div>` : ''}
+
+    <div class="era-divider"><span class="era-divider-title">Primary Cooking Methods</span><span class="era-divider-line"></span></div>
+    <div class="methods-list">${methods}</div>
+
+    ${mistakes ? `
+    <div class="insight-strip warn">
+      <div class="card-label">Common Mistakes to Avoid</div>
+      <ul class="bullet-list">${mistakes}</ul>
+    </div>` : ''}
+
+    ${d.flavor_pairings ? `
+    <div class="insight-strip">
+      <div class="card-label">Flavor Pairings</div>
+      <div class="card-body">${escHtml(d.flavor_pairings)}</div>
+    </div>` : ''}
+
+    ${d.pro_tips ? `
+    <div class="insight-strip">
+      <div class="card-label">Pro Tips</div>
+      <div class="card-body">${escHtml(d.pro_tips)}</div>
+    </div>` : ''}
+  `;
+}
+
+// =========================================
+// RENDER — AUTHENTICITY (real or fake)
+// =========================================
+
+function renderAuthenticity(d) {
+  const risk = (d.fraud_risk || '').toLowerCase();
+  const riskClass = risk.includes('very high') ? 'very-high'
+                  : risk.includes('high')      ? 'high'
+                  : risk.includes('medium')    ? 'medium'
+                  : risk.includes('low')       ? 'low' : '';
+
+  const fakes = (d.common_fakes || []).map(f => `
+    <div class="fake-card">
+      <h4>${escHtml(f.fake_name || '')}</h4>
+      ${f.how_it_is_faked ? `<p><span class="md-bold">How it's faked: </span>${escHtml(f.how_it_is_faked)}</p>` : ''}
+      ${f.how_to_spot_it ? `<p><span class="md-bold">How to spot it: </span>${escHtml(f.how_to_spot_it)}</p>` : ''}
+    </div>
+  `).join('');
+
+  const checks  = (d.authenticity_checks || []).map(c => `<li>${escHtml(c)}</li>`).join('');
+  const reds    = (d.red_flags || []).map(r => `<li>${escHtml(r)}</li>`).join('');
+
+  document.getElementById('authenticityContent').innerHTML = `
+    <div class="risk-banner ${riskClass}">
+      <div class="risk-label">Fraud Risk</div>
+      <div class="risk-value">${escHtml(d.fraud_risk || '—')}</div>
+      <div class="risk-overview">${escHtml(d.fraud_overview || '')}</div>
+    </div>
+
+    ${fakes ? `
+    <div class="era-divider"><span class="era-divider-title">Common Fakes &amp; Adulterations</span><span class="era-divider-line"></span></div>
+    <div class="fakes-grid">${fakes}</div>` : ''}
+
+    ${checks ? `
+    <div class="insight-strip">
+      <div class="card-label">Authenticity Checks You Can Do</div>
+      <ul class="bullet-list">${checks}</ul>
+    </div>` : ''}
+
+    ${d.trusted_certifications ? `
+    <div class="insight-strip">
+      <div class="card-label">Trusted Certifications</div>
+      <div class="card-body">${escHtml(d.trusted_certifications)}</div>
+    </div>` : ''}
+
+    ${d.where_to_buy_authentic ? `
+    <div class="insight-strip">
+      <div class="card-label">Where to Buy the Real Thing</div>
+      <div class="card-body">${escHtml(d.where_to_buy_authentic)}</div>
+    </div>` : ''}
+
+    ${reds ? `
+    <div class="insight-strip warn">
+      <div class="card-label">Red Flags</div>
+      <ul class="bullet-list">${reds}</ul>
+    </div>` : ''}
+  `;
+}
+
+// =========================================
+// RENDER — CULTIVATION (grow it)
+// =========================================
+
+function renderCultivation(d) {
+  const steps = (d.growing_steps || []).map((s, i) => `
+    <li><span class="step-num">${i + 1}</span><span>${escHtml(s)}</span></li>
+  `).join('');
+
+  document.getElementById('growContent').innerHTML = `
+    <div class="grow-summary">
+      <div class="grow-stat">
+        <span class="grow-stat-label">Growability</span>
+        <span class="grow-stat-value">${escHtml(d.growability || '—')}</span>
+      </div>
+      <div class="grow-stat">
+        <span class="grow-stat-label">Time to Harvest</span>
+        <span class="grow-stat-value">${escHtml(d.time_to_harvest || '—')}</span>
+      </div>
+      <div class="grow-stat">
+        <span class="grow-stat-label">Container Friendly</span>
+        <span class="grow-stat-value">${escHtml(d.container_friendly || '—')}</span>
+      </div>
+    </div>
+
+    <div class="overview-grid">
+      <div class="info-card">
+        <div class="card-icon">🌡</div>
+        <div class="card-label">Climate</div>
+        <div class="card-body">${escHtml(d.climate || '')}</div>
+      </div>
+      <div class="info-card">
+        <div class="card-icon">🪴</div>
+        <div class="card-label">Soil</div>
+        <div class="card-body">${escHtml(d.soil || '')}</div>
+      </div>
+      <div class="info-card">
+        <div class="card-icon">☀️</div>
+        <div class="card-label">Sun &amp; Water</div>
+        <div class="card-body">${escHtml(d.sunlight_water || '')}</div>
+      </div>
+      <div class="info-card">
+        <div class="card-icon">🌱</div>
+        <div class="card-label">Propagation</div>
+        <div class="card-body">${escHtml(d.propagation || '')}</div>
+      </div>
+    </div>
+
+    ${steps ? `
+    <div class="insight-strip">
+      <div class="card-label">Growing Steps</div>
+      <ol class="step-list">${steps}</ol>
+    </div>` : ''}
+
+    ${d.harvest_signs ? `
+    <div class="insight-strip">
+      <div class="card-label">When to Harvest</div>
+      <div class="card-body">${escHtml(d.harvest_signs)}</div>
+    </div>` : ''}
+
+    ${d.common_pests_diseases ? `
+    <div class="insight-strip warn">
+      <div class="card-label">Pests &amp; Diseases</div>
+      <div class="card-body">${escHtml(d.common_pests_diseases)}</div>
+    </div>` : ''}
+  `;
+}
+
+// =========================================
+// RENDER — PRESERVATION (store + preserve + shelf life)
+// =========================================
+
+function renderPreservation(d) {
+  const sl = d.shelf_life || {};
+  const methods = (d.preservation_methods || []).map(m => `
+    <div class="method-card">
+      <div class="method-head">
+        <span class="method-pill">${escHtml(m.method || '')}</span>
+        ${m.shelf_life ? `<span class="method-temp">🗓 ${escHtml(m.shelf_life)}</span>` : ''}
+      </div>
+      ${m.how_to ? `<div class="recipe-section"><div class="recipe-section-label">How To</div><div class="recipe-section-text">${escHtml(m.how_to)}</div></div>` : ''}
+      ${m.safety_notes ? `<div class="recipe-section"><div class="recipe-section-label">Safety Notes</div><div class="recipe-section-text">${escHtml(m.safety_notes)}</div></div>` : ''}
+    </div>
+  `).join('');
+
+  const dos = (d.storage_dos_and_donts || []).map(s => `<li>${escHtml(s)}</li>`).join('');
+
+  document.getElementById('preserveContent').innerHTML = `
+    <div class="shelf-life-grid">
+      <div class="shelf-card">
+        <span class="shelf-icon">🥫</span>
+        <div class="shelf-label">Pantry</div>
+        <div class="shelf-value">${escHtml(sl.pantry || 'N/A')}</div>
+      </div>
+      <div class="shelf-card">
+        <span class="shelf-icon">❄️</span>
+        <div class="shelf-label">Refrigerator</div>
+        <div class="shelf-value">${escHtml(sl.refrigerator || 'N/A')}</div>
+      </div>
+      <div class="shelf-card">
+        <span class="shelf-icon">🧊</span>
+        <div class="shelf-label">Freezer</div>
+        <div class="shelf-value">${escHtml(sl.freezer || 'N/A')}</div>
+      </div>
+    </div>
+
+    ${d.best_storage ? `
+    <div class="insight-strip">
+      <div class="card-label">Best Way to Store</div>
+      <div class="card-body">${escHtml(d.best_storage)}</div>
+    </div>` : ''}
+
+    ${dos ? `
+    <div class="insight-strip">
+      <div class="card-label">Storage Do's &amp; Don'ts</div>
+      <ul class="bullet-list">${dos}</ul>
+    </div>` : ''}
+
+    ${methods ? `
+    <div class="era-divider"><span class="era-divider-title">Preservation Methods</span><span class="era-divider-line"></span></div>
+    <div class="methods-list">${methods}</div>` : ''}
+
+    ${d.spoilage_signs ? `
+    <div class="insight-strip warn">
+      <div class="card-label">Signs It's Gone Bad</div>
+      <div class="card-body">${escHtml(d.spoilage_signs)}</div>
+    </div>` : ''}
+
+    ${d.freshness_revival && d.freshness_revival.toLowerCase() !== 'n/a' ? `
+    <div class="insight-strip">
+      <div class="card-label">Reviving Freshness</div>
+      <div class="card-body">${escHtml(d.freshness_revival)}</div>
+    </div>` : ''}
   `;
 }
 
@@ -356,6 +660,15 @@ function escHtml(str) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+function escAttr(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 function loadingHtml(msg) {
