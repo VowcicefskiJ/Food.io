@@ -44,6 +44,30 @@ Then:
 - Press **i** for the iOS Simulator, or **a** for the Android emulator — the app finds the backend automatically.
 - **Physical phone:** install *Expo Go* from your app store, scan the QR code, and set `API_BASE_URL` in `mobile/src/api.js` to `http://<your-computer's-LAN-IP>:8000` first.
 
+### Run in Android Studio
+
+The native Android project lives at `mobile/android/` (generated with Expo prebuild).
+
+**One-time setup**
+1. Install [Android Studio](https://developer.android.com/studio). During setup let it install the **Android SDK** and an **emulator image**.
+2. Create a virtual device: **Tools → Device Manager → Create Device** — any recent Pixel with the newest system image is fine.
+3. Make sure you've run `npm install` inside `mobile/` at least once.
+
+**Each time you run the app**
+1. Start the backend: `./run.sh` (or `run.bat`) from the repo root.
+2. Start the JavaScript bundler — in a terminal:
+   ```bash
+   cd mobile
+   npx expo start
+   ```
+   Leave this running; the app loads its code from it in debug builds.
+3. Open Android Studio → **Open** → select the **`mobile/android`** folder (not the repo root). Wait for the Gradle sync to finish (first time takes several minutes).
+4. Pick your virtual device in the toolbar and press the green **Run ▶** button.
+
+The emulator reaches your local backend automatically (the app uses `10.0.2.2:8000` on Android, which is the emulator's alias for your computer's `localhost`).
+
+**Shortcut without opening the IDE:** `cd mobile && npx expo run:android` builds and launches the same native project from the command line, as long as Android Studio's SDK and an emulator are installed.
+
 ## 3. Quick health check
 
 With the backend running:
