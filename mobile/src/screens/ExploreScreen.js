@@ -9,7 +9,7 @@ import { colors, serif, shadow } from '../theme';
 const POPULAR = [
   'Turmeric', 'Miso', 'Saffron', 'Ginger',
   'Farro', 'Sumac', 'Cardamom', 'Preserved Lemon',
-  'Miso', 'Tamarind', 'Shiso', 'Za\'atar',
+  'Tamarind', 'Shiso', 'Za\'atar', 'Sichuan Pepper',
 ];
 
 export default function ExploreScreen({ navigation }) {
