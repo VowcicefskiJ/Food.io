@@ -223,38 +223,57 @@ function renderSources() {
 // =========================================
 
 function renderOverview(d) {
+  // Accept either the new bullet arrays or the older string fields (mobile-compat).
+  const asList = (v) => Array.isArray(v) ? v.filter(Boolean)
+                      : (typeof v === 'string' && v.trim()) ? [v.trim()] : [];
+  const chips  = asList(d.key_facts);
+  const nutri  = asList(d.nutrition_facts).length ? asList(d.nutrition_facts) : asList(d.nutritional_highlights);
+  const uses   = asList(d.common_uses);
+  const buying = asList(d.buying_tips).length ? asList(d.buying_tips) : asList(d.selection_tips);
+  const storage = asList(d.storage_tips);
+
+  const bullets = (items) => `<ul class="overview-bullets">${items.map(x => `<li>${escHtml(x)}</li>`).join('')}</ul>`;
+
   document.getElementById('overviewContent').innerHTML = `
     <div class="overview-grid">
 
       <div class="info-card hero-card full-width">
         <div class="card-label">About</div>
         <div class="card-body">${escHtml(d.description || '')}</div>
+        ${chips.length ? `<div class="fact-chips">${chips.map(f => `<span class="fact-chip">${escHtml(f)}</span>`).join('')}</div>` : ''}
       </div>
 
       <div class="info-card">
         <div class="card-icon">🌍</div>
         <div class="card-label">Origin &amp; History</div>
         <div class="card-big">${escHtml(d.origin || '—')}</div>
-        <div class="card-body">${escHtml(d.history || '')}</div>
+        ${d.history ? `<div class="card-body">${escHtml(d.history)}</div>` : ''}
       </div>
 
       <div class="info-card">
         <div class="card-icon">🥦</div>
         <div class="card-label">Nutrition</div>
-        <div class="card-body">${escHtml(d.nutritional_highlights || '')}</div>
+        ${nutri.length ? bullets(nutri) : '<div class="card-body">—</div>'}
       </div>
+
+      ${uses.length ? `
+      <div class="info-card">
+        <div class="card-icon">🍽</div>
+        <div class="card-label">Common Uses</div>
+        ${bullets(uses)}
+      </div>` : ''}
 
       <div class="info-card">
         <div class="card-icon">🗓</div>
-        <div class="card-label">Best Season to Buy</div>
+        <div class="card-label">Best Season &amp; Buying</div>
         <div class="card-big">${escHtml(d.best_season || '—')}</div>
-        <div class="card-body">${escHtml(d.selection_tips || '')}</div>
+        ${buying.length ? bullets(buying) : ''}
       </div>
 
       <div class="info-card">
         <div class="card-icon">📦</div>
         <div class="card-label">Storage</div>
-        <div class="card-body">${escHtml(d.storage_tips || '')}</div>
+        ${storage.length ? bullets(storage) : '<div class="card-body">—</div>'}
       </div>
 
       ${d.fun_fact ? `

@@ -228,17 +228,23 @@ Search the web to find accurate, up-to-date information about the ingredient: "{
 Use your search results to ground your response in real sources.
 Respond in {request.language}.
 
+Keep everything SHORT, plain, and scannable. Prefer simple wording a busy home cook can skim.
+Write full sentences only for "description" and "history" (and keep those brief); everything else should be short bullet phrases, NOT paragraphs.
+
 Return ONLY valid JSON with this exact structure — no markdown, no extra text:
 {{
   "name": "string",
-  "description": "string (2-3 rich paragraphs drawing from what you found)",
-  "origin": "string",
-  "nutritional_highlights": "string (cite specific values where found)",
-  "history": "string (2 paragraphs of historically accurate context from real sources)",
-  "best_season": "string",
-  "selection_tips": "string",
-  "storage_tips": "string",
-  "fun_fact": "string (one surprising fact verified from a real source)"
+  "description": "string (2-3 short, simple sentences — what it is and what it tastes like)",
+  "key_facts": ["3-5 very short bullet phrases: flavor, texture, typical cook time, diet notes, etc. (e.g. 'Nutty, chewy', 'Cooks in ~30 min', 'High in fiber')"],
+  "origin": "string (short — region + rough era, e.g. 'Fertile Crescent, ~10,000 years ago')",
+  "history": "string (2-3 short sentences max — no walls of text)",
+  "nutritional_highlights": "string (one short sentence summary)",
+  "nutrition_facts": ["short bullet phrases with numbers where known (e.g. '170 cal per 1/4 cup', '6g protein', '5g fiber')"],
+  "common_uses": ["3-5 short bullet phrases of how it's used (e.g. 'Salads', 'Soups & stews', 'Grain bowls')"],
+  "best_season": "string (short)",
+  "buying_tips": ["2-4 short bullet phrases on what to look for when buying"],
+  "storage_tips": ["2-4 short bullet phrases on how to store it"],
+  "fun_fact": "string (one short surprising sentence)"
 }}"""
 
     return _run_json_prompt(prompt)
