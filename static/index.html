@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Food.io — Discover Ingredients &amp; Recipes</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,800;1,400;1,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
@@ -14,8 +14,8 @@
 <header class="header">
   <div class="container header-inner">
     <a class="logo" href="/">
-      <svg class="logo-icon" width="28" height="28" viewBox="0 0 28 28" fill="none">
-        <path d="M14 2C7.373 2 2 7.373 2 14s5.373 12 12 12 12-5.373 12-12S20.627 2 14 2z" fill="#2E6B28" opacity=".15"/>
+      <svg class="logo-icon" width="30" height="30" viewBox="0 0 28 28" fill="none">
+        <circle cx="14" cy="14" r="12" fill="#2E6B28" opacity=".12"/>
         <path d="M14 6c-1.5 3-2 5.5-1 8 1 2.5 3 4 3 6" stroke="#2E6B28" stroke-width="1.8" stroke-linecap="round"/>
         <path d="M10 10c1 1 2.5 2 4 2" stroke="#2E6B28" stroke-width="1.5" stroke-linecap="round"/>
         <path d="M18 8c-1 1.5-2 3-4 4" stroke="#2E6B28" stroke-width="1.5" stroke-linecap="round"/>
@@ -24,8 +24,11 @@
     </a>
     <nav class="nav">
       <a href="#explore" class="nav-link">Explore</a>
+      <a href="#features" class="nav-link">What You Get</a>
+      <a href="#how-it-works" class="nav-link">How It Works</a>
       <a href="#meal-planner" class="nav-link">Meal Planner</a>
     </nav>
+    <a href="#explore" class="header-cta" onclick="focusSearch(event)">Search an Ingredient</a>
   </div>
 </header>
 
@@ -34,24 +37,29 @@
   <!-- ========== HERO ========== -->
   <section class="hero" id="explore">
     <div class="hero-bg-pattern"></div>
+    <div class="hero-glow"></div>
     <div class="container hero-inner">
       <div class="hero-content">
-        <p class="hero-eyebrow">Real food, real sources, real history</p>
-        <h1 class="hero-title">From Ancient<br/>Recipes to<br/>Local Farms</h1>
-        <p class="hero-subtitle">Search any ingredient — discover where to source it fresh near you, and explore recipes spanning thousands of years of culinary history.</p>
+        <p class="hero-eyebrow">
+          <span class="eyebrow-dot"></span>
+          AI-powered · Live web search · No database
+        </p>
+        <h1 class="hero-title">Every Ingredient<br/>Has a <em>Story.</em></h1>
+        <p class="hero-subtitle">Search anything edible — get its history, how to cook it right, how to spot fakes, where to buy it near you, how to grow it, and recipes spanning thousands of years.</p>
+
         <div class="hero-stats">
-          <div class="stat"><span class="stat-num">1000s</span><span class="stat-label">of Years of Recipes</span></div>
+          <div class="stat"><span class="stat-num">7</span><span class="stat-label">Deep-Dive Tabs<br/>per Ingredient</span></div>
           <div class="stat-divider"></div>
-          <div class="stat"><span class="stat-num">Local</span><span class="stat-label">Quality Sources Only</span></div>
+          <div class="stat"><span class="stat-num">1000s</span><span class="stat-label">of Years of<br/>Recipe History</span></div>
           <div class="stat-divider"></div>
-          <div class="stat"><span class="stat-num">Global</span><span class="stat-label">Culinary Traditions</span></div>
+          <div class="stat"><span class="stat-num">Local</span><span class="stat-label">Sourcing Tips<br/>for Your City</span></div>
         </div>
       </div>
 
       <div class="search-card" id="search-card">
         <div class="search-card-header">
           <h2 class="search-card-title">Find an Ingredient</h2>
-          <p class="search-card-sub">Get sourcing tips, history &amp; recipes</p>
+          <p class="search-card-sub">History, sourcing, fraud checks, recipes &amp; more</p>
         </div>
         <div class="search-fields">
           <div class="field-group">
@@ -67,7 +75,7 @@
           </div>
           <div class="field-group">
             <label class="field-label" for="locationInput">
-              Your Location <span class="label-optional">(optional)</span>
+              Your Location <span class="label-optional">(optional — for sourcing tips)</span>
             </label>
             <input
               type="text"
@@ -85,6 +93,14 @@
             <path d="M5 12h14M12 5l7 7-7 7"/>
           </svg>
         </button>
+        <div class="quick-tries">
+          <span class="quick-tries-label">Try:</span>
+          <button class="chip" onclick="quickSearch('saffron')">Saffron</button>
+          <button class="chip" onclick="quickSearch('miso')">Miso</button>
+          <button class="chip" onclick="quickSearch('turmeric')">Turmeric</button>
+          <button class="chip" onclick="quickSearch('farro')">Farro</button>
+          <button class="chip" onclick="quickSearch('sumac')">Sumac</button>
+        </div>
       </div>
     </div>
   </section>
@@ -128,6 +144,84 @@
         <div id="recipesContent"></div>
       </div>
 
+    </div>
+  </section>
+
+  <!-- ========== FEATURES ========== -->
+  <section class="features-section" id="features">
+    <div class="container">
+      <div class="section-header">
+        <p class="section-eyebrow">One Search, Seven Answers</p>
+        <h2 class="section-title">What You Get for Every Ingredient</h2>
+        <p class="section-subtitle">Each tab is researched live by AI with real web search — nothing is canned or pre-written.</p>
+      </div>
+
+      <div class="features-grid">
+        <button class="feature-card" onclick="focusSearch(event)">
+          <span class="feature-icon">🌿</span>
+          <h3>Overview</h3>
+          <p>Photo, origin, history, nutrition, best season to buy and a fun fact.</p>
+        </button>
+        <button class="feature-card" onclick="focusSearch(event)">
+          <span class="feature-icon">🍳</span>
+          <h3>Cook It Right</h3>
+          <p>The best methods with times &amp; temps, doneness cues and mistakes to avoid.</p>
+        </button>
+        <button class="feature-card" onclick="focusSearch(event)">
+          <span class="feature-icon">🕵️</span>
+          <h3>Real or Fake</h3>
+          <p>Fraud risk, common fakes and adulterations — and how to spot the real thing.</p>
+        </button>
+        <button class="feature-card" onclick="focusSearch(event)">
+          <span class="feature-icon">📍</span>
+          <h3>Where to Find</h3>
+          <p>Quality local sources near you: farmers markets, specialty shops and more.</p>
+        </button>
+        <button class="feature-card" onclick="focusSearch(event)">
+          <span class="feature-icon">🌱</span>
+          <h3>Grow It</h3>
+          <p>Climate, soil, propagation and step-by-step growing — even in containers.</p>
+        </button>
+        <button class="feature-card" onclick="focusSearch(event)">
+          <span class="feature-icon">🧊</span>
+          <h3>Preserve &amp; Store</h3>
+          <p>Realistic shelf lives for pantry, fridge and freezer, plus preservation methods.</p>
+        </button>
+        <button class="feature-card feature-card-wide" onclick="focusSearch(event)">
+          <span class="feature-icon">📜</span>
+          <h3>Recipes Through Time</h3>
+          <p>Authentic historical recipes with their context, next to modern interpretations.</p>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== HOW IT WORKS ========== -->
+  <section class="how-section" id="how-it-works">
+    <div class="container">
+      <div class="section-header">
+        <p class="section-eyebrow">Simple by Design</p>
+        <h2 class="section-title">How It Works</h2>
+      </div>
+      <div class="how-grid">
+        <div class="how-step">
+          <span class="how-num">1</span>
+          <h3>Search anything edible</h3>
+          <p>Type an ingredient — common or obscure — and optionally your city for local sourcing tips.</p>
+        </div>
+        <div class="how-arrow" aria-hidden="true">→</div>
+        <div class="how-step">
+          <span class="how-num">2</span>
+          <h3>AI researches it live</h3>
+          <p>Seven parallel AI calls with real web search dig up history, fraud data, growing guides and recipes.</p>
+        </div>
+        <div class="how-arrow" aria-hidden="true">→</div>
+        <div class="how-step">
+          <span class="how-num">3</span>
+          <h3>Explore &amp; cook</h3>
+          <p>Click through the tabs, plan a meal from what's in your kitchen, and cook with confidence.</p>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -190,13 +284,49 @@
     </div>
   </section>
 
+  <!-- ========== MOBILE APP ========== -->
+  <section class="mobile-section">
+    <div class="container mobile-inner">
+      <div class="mobile-copy">
+        <p class="section-eyebrow light">Take It With You</p>
+        <h2 class="mobile-title">Also in Your Pocket</h2>
+        <p class="mobile-text">Food.io ships with a native mobile app for <strong>iOS and Android</strong> — the same seven-tab ingredient explorer and meal planner, plus ingredient photo lookup, built with React&nbsp;Native.</p>
+        <p class="mobile-text mobile-note">Find it in the <code>mobile/</code> folder of the project — see the README for one-command setup with Expo.</p>
+      </div>
+      <div class="mobile-mock" aria-hidden="true">
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <span class="phone-logo">🌿</span>
+            <span class="phone-title">Food.io</span>
+            <div class="phone-bar"></div>
+            <div class="phone-line"></div>
+            <div class="phone-line short"></div>
+            <div class="phone-tabs">
+              <span></span><span></span><span></span><span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
 </main>
 
 <!-- ========== FOOTER ========== -->
 <footer class="footer">
   <div class="container footer-inner">
-    <span class="footer-logo">Food.io</span>
-    <p class="footer-tagline">Connecting people to real food, real history, real sources.</p>
+    <div class="footer-brand">
+      <span class="footer-logo">Food.io</span>
+      <p class="footer-tagline">Connecting people to real food, real history, real sources.</p>
+    </div>
+    <nav class="footer-nav">
+      <a href="#explore">Explore</a>
+      <a href="#features">What You Get</a>
+      <a href="#how-it-works">How It Works</a>
+      <a href="#meal-planner">Meal Planner</a>
+    </nav>
+    <p class="footer-fine">Powered by AI with live web search · Web &amp; mobile</p>
   </div>
 </footer>
 

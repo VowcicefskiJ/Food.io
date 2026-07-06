@@ -5,6 +5,23 @@
 let ingredientTags = [];
 
 // =========================================
+// LANDING PAGE HELPERS
+// =========================================
+
+/** Quick-try chips in the hero: fill the input and search immediately. */
+function quickSearch(name) {
+  document.getElementById('ingredientInput').value = name;
+  searchIngredient();
+}
+
+/** Header CTA + feature cards: scroll to the search card and focus the input. */
+function focusSearch(e) {
+  if (e) e.preventDefault();
+  document.getElementById('search-card').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setTimeout(() => document.getElementById('ingredientInput').focus({ preventScroll: true }), 450);
+}
+
+// =========================================
 // INGREDIENT SEARCH
 // =========================================
 
