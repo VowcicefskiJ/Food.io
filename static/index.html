@@ -126,6 +126,7 @@
         <button class="tab-btn"        data-tab="grow"         onclick="switchTab('grow')">Grow It</button>
         <button class="tab-btn"        data-tab="preserve"     onclick="switchTab('preserve')">Preserve &amp; Store</button>
         <button class="tab-btn"        data-tab="recipes"      onclick="switchTab('recipes')">Recipes Through Time</button>
+        <button class="tab-btn"        data-tab="sources"      onclick="switchTab('sources')">Sources</button>
       </div>
 
       <div class="tab-pane active" id="overview-pane">
@@ -149,6 +150,10 @@
       </div>
       <div class="tab-pane" id="recipes-pane">
         <div id="recipesContent"></div>
+      </div>
+      <div class="tab-pane" id="sources-pane">
+        <p class="sources-intro">Everything above is researched live with web search. These are the pages the AI consulted, grouped by section.</p>
+        <div id="sourcesContent"></div>
       </div>
 
     </div>

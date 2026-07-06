@@ -6,6 +6,7 @@ from openai import OpenAI
 from typing import List, Optional
 import os
 import json
+import re
 import urllib.parse
 import urllib.request
 
@@ -100,12 +101,7 @@ Meal type: {request.meal_type}
 Return 3-5 meal suggestions."""
 
     response = client.responses.create(model="gpt-4.1-mini", input=prompt)
-    raw_text = response.output_text
-
-    try:
-        data = json.loads(raw_text)
-    except json.JSONDecodeError as exc:
-        raise HTTPException(status_code=502, detail="Model returned invalid JSON") from exc
+    data = _parse_json(response.output_text)
 
     try:
         validated = MealResponse(**data)
@@ -115,16 +111,90 @@ Return 3-5 meal suggestions."""
     return validated
 
 
+_MD_LINK = re.compile(r"\[([^\]]*)\]\((https?://[^)\s]+)\)")
+# A parenthetical made up entirely of one or more markdown links, e.g. "([FDA](url), [Oceana](url))"
+_PAREN_CITATION = re.compile(r"\s*\(\s*(?:\[[^\]]*\]\(https?://[^)\s]+\)\s*[,;]?\s*)+\)")
+
+
+def _clean_url(url: str) -> str:
+    url = re.sub(r"[?&]utm_source=openai\b", "", url)
+    return url.rstrip("?&")
+
+
+def _strip_citations(value, collected: list):
+    """Recursively remove inline markdown citations from string fields,
+    collecting every URL into `collected` so nothing is lost."""
+    if isinstance(value, str):
+        for m in _MD_LINK.finditer(value):
+            title, url = m.group(1).strip(), _clean_url(m.group(2))
+            collected.append({"title": title or url, "url": url})
+        text = _PAREN_CITATION.sub("", value)
+        text = _MD_LINK.sub(lambda m: m.group(1), text)
+        return re.sub(r"\s{2,}", " ", text).replace(" .", ".").strip()
+    if isinstance(value, list):
+        return [_strip_citations(v, collected) for v in value]
+    if isinstance(value, dict):
+        return {k: _strip_citations(v, collected) for k, v in value.items()}
+    return value
+
+
+def _citation_sources(response) -> list:
+    """Pull url_citation annotations attached by the web-search tool."""
+    sources = []
+    for item in getattr(response, "output", None) or []:
+        for part in getattr(item, "content", None) or []:
+            for ann in getattr(part, "annotations", None) or []:
+                if getattr(ann, "type", "") == "url_citation":
+                    url = _clean_url(getattr(ann, "url", "") or "")
+                    if url:
+                        sources.append({"title": getattr(ann, "title", "") or url, "url": url})
+    return sources
+
+
+def _dedupe_sources(sources: list) -> list:
+    seen, out = set(), []
+    for s in sources:
+        key = s["url"].rstrip("/")
+        if key not in seen:
+            seen.add(key)
+            out.append(s)
+    return out
+
+
+def _parse_json(raw_text: str):
+    """Parse model output tolerantly: strip code fences and surrounding prose."""
+    text = raw_text.strip()
+    if text.startswith("```"):
+        text = re.sub(r"^```[a-zA-Z]*\s*", "", text)
+        text = re.sub(r"\s*```$", "", text)
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        start, end = text.find("{"), text.rfind("}")
+        if start != -1 and end > start:
+            try:
+                return json.loads(text[start:end + 1])
+            except json.JSONDecodeError:
+                pass
+    raise HTTPException(status_code=502, detail="Model returned invalid JSON")
+
+
+_NO_INLINE_CITATIONS = """
+
+IMPORTANT: Do NOT put citations, source names, URLs, or markdown links inside any JSON string value — keep the prose clean and readable. Your search citations are captured separately."""
+
+
 def _run_json_prompt(prompt: str, with_search: bool = True):
-    kwargs = {"model": "gpt-4.1-mini", "input": prompt}
+    kwargs = {"model": "gpt-4.1-mini", "input": prompt + (_NO_INLINE_CITATIONS if with_search else "")}
     if with_search:
         kwargs["tools"] = [{"type": "web_search_preview"}]
     response = client.responses.create(**kwargs)
-    raw_text = response.output_text
-    try:
-        return json.loads(raw_text)
-    except json.JSONDecodeError as exc:
-        raise HTTPException(status_code=502, detail="Model returned invalid JSON") from exc
+    data = _parse_json(response.output_text)
+    if isinstance(data, dict):
+        inline_sources = []
+        data = _strip_citations(data, inline_sources)
+        data["sources"] = _dedupe_sources(_citation_sources(response) + inline_sources)
+    return data
 
 
 def _wikipedia_image(ingredient: str) -> Optional[str]:
@@ -199,11 +269,13 @@ Return ONLY valid JSON — no markdown, no extra text:
     }}
   ],
   "common_mistakes": ["string", "string", "string"],
+  "common_uses": "string (what this ingredient is used for day to day: cuisines it stars in, dish types, condiments, drinks, desserts)",
+  "classic_dishes": ["string (a famous dish it's essential to, with one-line description)", "string", "string"],
   "flavor_pairings": "string (classic ingredients that pair well)",
   "pro_tips": "string (2-3 expert tips)"
 }}
 
-Provide 3-4 primary cooking methods that genuinely suit this ingredient."""
+Provide 3-4 primary cooking methods that genuinely suit this ingredient, and 3-5 classic dishes."""
 
     return _run_json_prompt(prompt)
 
@@ -357,19 +429,7 @@ Return ONLY valid JSON — no markdown, no extra text:
 
 Provide 3-5 most relevant source types."""
 
-    response = client.responses.create(
-        model="gpt-4.1-mini",
-        tools=[{"type": "web_search_preview"}],
-        input=prompt,
-    )
-    raw_text = response.output_text
-
-    try:
-        data = json.loads(raw_text)
-    except json.JSONDecodeError as exc:
-        raise HTTPException(status_code=502, detail="Model returned invalid JSON") from exc
-
-    return data
+    return _run_json_prompt(prompt)
 
 
 @app.post("/ingredient/recipes")
@@ -415,16 +475,4 @@ Return ONLY valid JSON — no markdown, no extra text:
 
 Provide 4-5 historical recipes spanning different eras and world regions (covering at least 1000 years), and 2-3 modern recipes."""
 
-    response = client.responses.create(
-        model="gpt-4.1-mini",
-        tools=[{"type": "web_search_preview"}],
-        input=prompt,
-    )
-    raw_text = response.output_text
-
-    try:
-        data = json.loads(raw_text)
-    except json.JSONDecodeError as exc:
-        raise HTTPException(status_code=502, detail="Model returned invalid JSON") from exc
-
-    return data
+    return _run_json_prompt(prompt)

@@ -69,6 +69,8 @@ async function searchIngredient() {
   document.getElementById('growContent').innerHTML         = loadingHtml('Researching how to grow it...');
   document.getElementById('preserveContent').innerHTML     = loadingHtml('Looking up storage and preservation...');
   document.getElementById('recipesContent').innerHTML      = loadingHtml('Searching through centuries of history...');
+  sourcesBySection = {};
+  renderSources();
 
   section.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
@@ -105,6 +107,7 @@ async function doFetchInfo(ingredient) {
   try {
     const data = await post('/ingredient/info', { ingredient, language: 'English' });
     renderOverview(data);
+    registerSources('Overview', data.sources);
   } catch (e) {
     document.getElementById('overviewContent').innerHTML = errorHtml(e.message);
   }
@@ -114,6 +117,7 @@ async function doFetchCooking(ingredient) {
   try {
     const data = await post('/ingredient/cooking', { ingredient, language: 'English' });
     renderCooking(data);
+    registerSources('Cook It Right', data.sources);
   } catch (e) {
     document.getElementById('cookingContent').innerHTML = errorHtml(e.message);
   }
@@ -123,6 +127,7 @@ async function doFetchAuthenticity(ingredient) {
   try {
     const data = await post('/ingredient/authenticity', { ingredient, language: 'English' });
     renderAuthenticity(data);
+    registerSources('Real or Fake', data.sources);
   } catch (e) {
     document.getElementById('authenticityContent').innerHTML = errorHtml(e.message);
   }
@@ -132,6 +137,7 @@ async function doFetchCultivation(ingredient) {
   try {
     const data = await post('/ingredient/cultivation', { ingredient, language: 'English' });
     renderCultivation(data);
+    registerSources('Grow It', data.sources);
   } catch (e) {
     document.getElementById('growContent').innerHTML = errorHtml(e.message);
   }
@@ -141,6 +147,7 @@ async function doFetchPreservation(ingredient) {
   try {
     const data = await post('/ingredient/preservation', { ingredient, language: 'English' });
     renderPreservation(data);
+    registerSources('Preserve & Store', data.sources);
   } catch (e) {
     document.getElementById('preserveContent').innerHTML = errorHtml(e.message);
   }
@@ -150,6 +157,7 @@ async function doFetchMarkets(ingredient, location) {
   try {
     const data = await post('/ingredient/markets', { ingredient, location, language: 'English' });
     renderMarkets(data);
+    registerSources('Where to Find', data.sources);
   } catch (e) {
     document.getElementById('marketsContent').innerHTML = errorHtml(e.message);
   }
@@ -159,9 +167,55 @@ async function doFetchRecipes(ingredient) {
   try {
     const data = await post('/ingredient/recipes', { ingredient, language: 'English' });
     renderRecipes(data);
+    registerSources('Recipes Through Time', data.sources);
   } catch (e) {
     document.getElementById('recipesContent').innerHTML = errorHtml(e.message);
   }
+}
+
+// =========================================
+// SOURCES TAB
+// =========================================
+
+let sourcesBySection = {};
+
+const SECTION_ORDER = ['Overview', 'Cook It Right', 'Real or Fake', 'Where to Find', 'Grow It', 'Preserve & Store', 'Recipes Through Time'];
+
+function registerSources(section, sources) {
+  if (Array.isArray(sources) && sources.length) {
+    sourcesBySection[section] = sources;
+    renderSources();
+  }
+}
+
+function domainOf(url) {
+  try { return new URL(url).hostname.replace(/^www\./, ''); } catch (_) { return url; }
+}
+
+function renderSources() {
+  const el = document.getElementById('sourcesContent');
+  const sections = SECTION_ORDER.filter(s => sourcesBySection[s]);
+  if (!sections.length) {
+    el.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Sources appear here as each section finishes loading...</p></div>`;
+    return;
+  }
+  el.innerHTML = sections.map(sec => `
+    <div class="source-group">
+      <div class="era-divider"><span class="era-divider-title">${escHtml(sec)}</span><span class="era-divider-line"></span></div>
+      <div class="source-list">
+        ${sourcesBySection[sec].map(s => `
+          <a class="source-item" href="${escAttr(s.url)}" target="_blank" rel="noopener noreferrer">
+            <span class="source-favicon">🔗</span>
+            <span class="source-meta">
+              <span class="source-title">${escHtml(s.title || domainOf(s.url))}</span>
+              <span class="source-domain">${escHtml(domainOf(s.url))}</span>
+            </span>
+            <svg class="source-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M7 7h10v10"/></svg>
+          </a>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
 }
 
 // =========================================
@@ -231,8 +285,21 @@ function renderCooking(d) {
   `).join('');
 
   const mistakes = (d.common_mistakes || []).map(m => `<li>${escHtml(m)}</li>`).join('');
+  const dishes   = (d.classic_dishes || []).map(x => `<li>${escHtml(x)}</li>`).join('');
 
   document.getElementById('cookingContent').innerHTML = `
+    ${d.common_uses ? `
+    <div class="insight-strip">
+      <div class="card-label">What It's Used For</div>
+      <div class="card-body">${escHtml(d.common_uses)}</div>
+    </div>` : ''}
+
+    ${dishes ? `
+    <div class="insight-strip">
+      <div class="card-label">Classic Dishes to Make With It</div>
+      <ul class="bullet-list">${dishes}</ul>
+    </div>` : ''}
+
     ${d.preparation ? `
     <div class="insight-strip">
       <div class="card-label">Preparation</div>
