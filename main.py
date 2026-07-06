@@ -293,27 +293,34 @@ def ingredient_authenticity(request: IngredientRequest):
 
     prompt = f"""You are a food authentication and fraud-prevention expert.
 
-Research how "{request.ingredient}" is commonly faked, adulterated, mislabeled, or substituted in the global food market.
-Use real reporting (e.g., FDA, EU food fraud reports, Oceana, Olive Oil Times, Saffron Trade Association, journalism) to ground your answer.
-Explain how a regular consumer can tell the real version from a counterfeit, and where to source the authentic product.
+Research "{request.ingredient}" so a regular shopper can tell whether what they're buying is REAL or FAKE. Cover:
+1. Fraud & counterfeits — how it's commonly faked, adulterated, mislabeled, or substituted
+2. GMO status — is a genetically modified version of this crop grown commercially? How can a shopper tell / avoid it?
+3. Organic — what organic certification means for this specific item and how to verify it (USDA Organic seal, PLU codes starting with 9, etc.)
+
+Use real reporting (e.g., FDA, USDA, EU food fraud reports, Non-GMO Project, Oceana, journalism) to ground your answer.
+Keep every field SHORT and scannable — bullet phrases and 1-2 sentence explanations, not paragraphs.
 Respond in {request.language}.
 
-Return ONLY valid JSON — no markdown, no extra text:
+Return ONLY valid JSON — no markdown, no extra text, no trailing commas:
 {{
   "ingredient": "string",
   "fraud_risk": "string ('Low' | 'Medium' | 'High' | 'Very High')",
-  "fraud_overview": "string (1-2 paragraphs explaining how it's commonly faked)",
+  "fraud_overview": "string (2-3 short sentences explaining how it's commonly faked)",
+  "gmo_status": "string (short verdict, e.g. 'No GMO version exists commercially' or 'Commonly GMO — ~90% of US crop is genetically modified')",
+  "gmo_details": "string (1-2 short sentences: how to avoid or identify the GMO version — Non-GMO Project seal, organic certification, country of origin)",
+  "organic_guidance": "string (1-2 short sentences: what organic means for THIS item, whether it's worth it, and how to verify — seals, PLU code starting with 9)",
   "common_fakes": [
     {{
       "fake_name": "string (e.g., 'Safflower passed off as saffron')",
-      "how_it_is_faked": "string",
-      "how_to_spot_it": "string (specific tests, visual / smell / taste cues)"
+      "how_it_is_faked": "string (one short sentence)",
+      "how_to_spot_it": "string (specific test or visual / smell / taste cue, short)"
     }}
   ],
-  "authenticity_checks": ["string (concrete at-home tests or label checks)", "string", "string"],
-  "trusted_certifications": "string (e.g., DOP, PDO, Fair Trade, organic seals — list real ones)",
-  "where_to_buy_authentic": "string (types of trusted vendors, regions of origin to look for)",
-  "red_flags": ["string", "string", "string"]
+  "authenticity_checks": ["string (concrete at-home test or label check, short)", "string", "string"],
+  "trusted_certifications": "string (real seals to look for: USDA Organic, Non-GMO Project, DOP/PDO, Fair Trade)",
+  "where_to_buy_authentic": "string (1-2 short sentences: trusted vendor types, regions of origin)",
+  "red_flags": ["string (short)", "string", "string"]
 }}
 
 Provide 3-5 common fakes/adulterations and 3-5 authenticity checks."""
