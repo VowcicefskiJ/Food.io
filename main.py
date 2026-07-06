@@ -443,6 +443,7 @@ Search the web for:
 - Documented historical recipes using "{request.ingredient}" from ancient, medieval, and pre-modern sources
 - Real traditional cooking methods and techniques from different cultures
 - Authentic modern recipes from reputable food sites, chefs, or culinary publications
+- For each recipe, an actual YouTube video that demonstrates making that dish (search "<dish name> recipe youtube")
 
 Use your search results to provide accurate, sourced recipes spanning human culinary history.
 Respond in {request.language}.
@@ -459,7 +460,8 @@ Return ONLY valid JSON — no markdown, no extra text:
       "description": "string",
       "historical_context": "string (include source or reference if found)",
       "ingredients_summary": "string",
-      "method": "string (authentic traditional technique)"
+      "method": "string (authentic traditional technique)",
+      "video_url": "string (a real, full YouTube watch URL you actually found in search that shows how to make this dish, e.g. 'https://www.youtube.com/watch?v=...'; use an empty string '' if you did not find a genuine one — never invent or guess a URL)"
     }}
   ],
   "modern_recipes": [
@@ -468,10 +470,13 @@ Return ONLY valid JSON — no markdown, no extra text:
       "style": "string (e.g., 'Contemporary French', 'Modern Japanese')",
       "description": "string",
       "ingredients_summary": "string",
-      "method": "string"
+      "method": "string",
+      "video_url": "string (a real, full YouTube watch URL you actually found in search that shows how to make this dish; use an empty string '' if you did not find a genuine one — never invent or guess a URL)"
     }}
   ]
 }}
+
+For video_url, only include a link you genuinely encountered in your web search results. If unsure, leave it as an empty string — a wrong link is worse than none.
 
 Provide 4-5 historical recipes spanning different eras and world regions (covering at least 1000 years), and 2-3 modern recipes."""
 

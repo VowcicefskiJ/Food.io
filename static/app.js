@@ -634,9 +634,46 @@ function recipeCard(r, id, isHistorical) {
           <div class="recipe-section-label">Method</div>
           <div class="recipe-section-text">${escHtml(r.method)}</div>
         </div>` : ''}
+        ${videoLink(r.video_url)}
       </div>
     </div>
   `;
+}
+
+/**
+ * Return a "Watch on YouTube" button, but only if the URL is a genuine
+ * YouTube watch/short link. Guards against the AI inventing a bogus link.
+ */
+function youtubeId(url) {
+  if (!url || typeof url !== 'string') return null;
+  try {
+    const u = new URL(url.trim());
+    const host = u.hostname.replace(/^www\./, '');
+    if (host === 'youtu.be') {
+      const id = u.pathname.slice(1);
+      return /^[\w-]{11}$/.test(id) ? id : null;
+    }
+    if (host === 'youtube.com' || host === 'm.youtube.com') {
+      if (u.pathname === '/watch') {
+        const id = u.searchParams.get('v');
+        return id && /^[\w-]{11}$/.test(id) ? id : null;
+      }
+      const m = u.pathname.match(/^\/(?:embed|shorts)\/([\w-]{11})/);
+      return m ? m[1] : null;
+    }
+  } catch (_) { /* malformed URL */ }
+  return null;
+}
+
+function videoLink(url) {
+  const id = youtubeId(url);
+  if (!id) return '';
+  const clean = `https://www.youtube.com/watch?v=${id}`;
+  return `
+    <a class="video-link" href="${escAttr(clean)}" target="_blank" rel="noopener noreferrer">
+      <svg class="video-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.3 31.3 0 0 0 0 12a31.3 31.3 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31.3 31.3 0 0 0 24 12a31.3 31.3 0 0 0-.5-5.8zM9.6 15.6V8.4l6.3 3.6-6.3 3.6z"/></svg>
+      Watch on YouTube
+    </a>`;
 }
 
 function toggleRecipe(id) {
