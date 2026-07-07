@@ -161,22 +161,77 @@ def _dedupe_sources(sources: list) -> list:
     return out
 
 
-def _parse_json(raw_text: str):
-    """Parse model output tolerantly: strip code fences and surrounding prose."""
+def _strip_trailing_commas(s: str) -> str:
+    return re.sub(r",(\s*[}\]])", r"\1", s)
+
+
+def _close_unbalanced(s: str) -> str:
+    """If a JSON object/array got truncated, append the missing closers so it parses.
+    Tracks string state so braces inside strings are ignored."""
+    stack, in_str, esc = [], False, False
+    for ch in s:
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == "\\":
+                esc = True
+            elif ch == '"':
+                in_str = False
+            continue
+        if ch == '"':
+            in_str = True
+        elif ch in "{[":
+            stack.append(ch)
+        elif ch == "}" and stack and stack[-1] == "{":
+            stack.pop()
+        elif ch == "]" and stack and stack[-1] == "[":
+            stack.pop()
+    tail = s.rstrip()
+    if in_str:
+        tail += '"'
+    tail = _strip_trailing_commas(tail)
+    for opener in reversed(stack):
+        tail += "}" if opener == "{" else "]"
+    return tail
+
+
+def _extract_json(raw_text: str):
+    """Best-effort parse of model output. Returns a dict/list, or None if hopeless."""
+    if not raw_text:
+        return None
     text = raw_text.strip()
-    if text.startswith("```"):
-        text = re.sub(r"^```[a-zA-Z]*\s*", "", text)
-        text = re.sub(r"\s*```$", "", text)
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        start, end = text.find("{"), text.rfind("}")
-        if start != -1 and end > start:
-            try:
-                return json.loads(text[start:end + 1])
-            except json.JSONDecodeError:
-                pass
-    raise HTTPException(status_code=502, detail="Model returned invalid JSON")
+
+    # Pull out of a ```json ... ``` fence if present.
+    fence = re.search(r"```(?:json)?\s*(.*?)```", text, re.S)
+    if fence:
+        text = fence.group(1).strip()
+
+    def candidates():
+        yield text
+        for op, cl in (("{", "}"), ("[", "]")):
+            a, b = text.find(op), text.rfind(cl)
+            if a != -1 and b > a:
+                sub = text[a:b + 1]
+                yield sub
+                yield _strip_trailing_commas(sub)
+        # Last resort: truncated output — close what was left open.
+        a = text.find("{")
+        if a != -1:
+            yield _close_unbalanced(text[a:])
+
+    for cand in candidates():
+        try:
+            return json.loads(cand)
+        except (json.JSONDecodeError, ValueError):
+            continue
+    return None
+
+
+def _parse_json(raw_text: str):
+    data = _extract_json(raw_text)
+    if data is None:
+        raise HTTPException(status_code=502, detail="Model returned invalid JSON")
+    return data
 
 
 _NO_INLINE_CITATIONS = """
@@ -189,11 +244,29 @@ def _run_json_prompt(prompt: str, with_search: bool = True):
     if with_search:
         kwargs["tools"] = [{"type": "web_search_preview"}]
     response = client.responses.create(**kwargs)
-    data = _parse_json(response.output_text)
+    citation_sources = _citation_sources(response)
+    data = _extract_json(response.output_text)
+
+    # If the model returned malformed/truncated output, ask it once to fix the JSON.
+    if data is None:
+        repair = client.responses.create(
+            model="gpt-4.1-mini",
+            input=(
+                "The text below was supposed to be a single JSON object but is malformed "
+                "or truncated. Return ONLY a corrected, complete, valid JSON object — fix "
+                "syntax, remove trailing commas, close any unclosed brackets. No markdown, "
+                "no commentary:\n\n" + (response.output_text or "")
+            ),
+        )
+        data = _extract_json(repair.output_text)
+
+    if data is None:
+        raise HTTPException(status_code=502, detail="Model returned invalid JSON")
+
     if isinstance(data, dict):
         inline_sources = []
         data = _strip_citations(data, inline_sources)
-        data["sources"] = _dedupe_sources(_citation_sources(response) + inline_sources)
+        data["sources"] = _dedupe_sources(citation_sources + inline_sources)
     return data
 
 
