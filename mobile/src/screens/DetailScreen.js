@@ -21,6 +21,15 @@ const TABS = [
   { key: 'recipes',  label: 'Recipes',  icon: 'book-outline' },
 ];
 
+// The AI occasionally returns a field as a string (or object) where we expect a
+// list. asArr() guarantees an array so a tab never crashes on an odd shape:
+// arrays pass through, a lone value is wrapped, empty/missing becomes [].
+function asArr(x) {
+  if (Array.isArray(x)) return x;
+  if (x === null || x === undefined || x === '') return [];
+  return [x];
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // SCREEN
 // ─────────────────────────────────────────────────────────────────────────────
@@ -176,7 +185,7 @@ function InsightStrip({ label, body, warn, children }) {
 function BulletList({ items }) {
   return (
     <View style={{ gap: 7, marginTop: 2 }}>
-      {items.map((item, i) => (
+      {asArr(items).map((item, i) => (
         <View key={i} style={sh.bulletRow}>
           <Text style={sh.bulletDot}>•</Text>
           <Text style={sh.bulletText}>{item}</Text>
@@ -187,6 +196,7 @@ function BulletList({ items }) {
 }
 
 function StepList({ steps }) {
+  steps = asArr(steps);
   return (
     <View style={{ gap: 10, marginTop: 4 }}>
       {steps.map((step, i) => (
@@ -303,7 +313,7 @@ function CookingTab({ data, error }) {
       ) : null}
 
       <EraHeading label="Cooking Methods" />
-      {(data.primary_methods || []).map((m, i) => (
+      {asArr(data.primary_methods).map((m, i) => (
         <Card key={i}>
           <View style={sh.methodHead}>
             <View style={sh.methodPill}>
@@ -324,7 +334,7 @@ function CookingTab({ data, error }) {
         </Card>
       ))}
 
-      {(data.common_mistakes || []).length > 0 ? (
+      {asArr(data.common_mistakes).length > 0 ? (
         <InsightStrip label="Common Mistakes to Avoid" warn>
           <BulletList items={data.common_mistakes} />
         </InsightStrip>
@@ -379,10 +389,10 @@ function AuthenticityTab({ data, error }) {
         <CardBody>{data.fraud_overview}</CardBody>
       </Card>
 
-      {(data.common_fakes || []).length > 0 ? (
+      {asArr(data.common_fakes).length > 0 ? (
         <>
           <EraHeading label="Common Fakes" />
-          {(data.common_fakes || []).map((f, i) => (
+          {asArr(data.common_fakes).map((f, i) => (
             <Card key={i}>
               <Text style={sh.fakeName}>{f.fake_name}</Text>
               {f.how_it_is_faked ? (
@@ -402,7 +412,7 @@ function AuthenticityTab({ data, error }) {
         </>
       ) : null}
 
-      {(data.authenticity_checks || []).length > 0 ? (
+      {asArr(data.authenticity_checks).length > 0 ? (
         <InsightStrip label="Checks You Can Do">
           <BulletList items={data.authenticity_checks} />
         </InsightStrip>
@@ -416,7 +426,7 @@ function AuthenticityTab({ data, error }) {
         <InsightStrip label="Where to Buy the Real Thing" body={data.where_to_buy_authentic} />
       ) : null}
 
-      {(data.red_flags || []).length > 0 ? (
+      {asArr(data.red_flags).length > 0 ? (
         <InsightStrip label="Red Flags" warn>
           <BulletList items={data.red_flags} />
         </InsightStrip>
@@ -435,7 +445,7 @@ function MarketsTab({ data, error }) {
 
   return (
     <View style={{ gap: 12 }}>
-      {(data.sources || []).map((s, i) => (
+      {asArr(data.sources).map((s, i) => (
         <Card key={i}>
           <View style={sh.marketBadge}>
             <Text style={sh.marketBadgeText}>{s.type}</Text>
@@ -516,7 +526,7 @@ function CultivationTab({ data, error }) {
         </Card>
       </View>
 
-      {(data.growing_steps || []).length > 0 ? (
+      {asArr(data.growing_steps).length > 0 ? (
         <InsightStrip label="Growing Steps">
           <StepList steps={data.growing_steps} />
         </InsightStrip>
@@ -567,16 +577,16 @@ function PreservationTab({ data, error }) {
         <InsightStrip label="Best Way to Store" body={data.best_storage} />
       ) : null}
 
-      {(data.storage_dos_and_donts || []).length > 0 ? (
+      {asArr(data.storage_dos_and_donts).length > 0 ? (
         <InsightStrip label="Do's &amp; Don'ts">
           <BulletList items={data.storage_dos_and_donts} />
         </InsightStrip>
       ) : null}
 
-      {(data.preservation_methods || []).length > 0 ? (
+      {asArr(data.preservation_methods).length > 0 ? (
         <>
           <EraHeading label="Preservation Methods" />
-          {(data.preservation_methods || []).map((m, i) => (
+          {asArr(data.preservation_methods).map((m, i) => (
             <Card key={i}>
               <View style={sh.methodHead}>
                 <View style={sh.methodPill}>
@@ -625,12 +635,12 @@ function RecipesTab({ data, error }) {
   return (
     <View>
       <EraHeading label="Through History" />
-      {(data.historical_recipes || []).map((r, i) => (
+      {asArr(data.historical_recipes).map((r, i) => (
         <RecipeCard key={`h${i}`} recipe={r} historical />
       ))}
 
       <EraHeading label="Modern Interpretations" style={{ marginTop: 24 }} />
-      {(data.modern_recipes || []).map((r, i) => (
+      {asArr(data.modern_recipes).map((r, i) => (
         <RecipeCard key={`m${i}`} recipe={r} historical={false} />
       ))}
     </View>

@@ -201,7 +201,7 @@ function renderOverview(d) {
 // =========================================
 
 function renderCooking(d) {
-  const methods = (d.primary_methods || []).map(m => `
+  const methods = asArr(d.primary_methods).map(m => `
     <div class="method-card">
       <div class="method-head">
         <span class="method-pill">${escHtml(m.method || '')}</span>
@@ -213,7 +213,7 @@ function renderCooking(d) {
     </div>
   `).join('');
 
-  const mistakes = (d.common_mistakes || []).map(m => `<li>${escHtml(m)}</li>`).join('');
+  const mistakes = asArr(d.common_mistakes).map(m => `<li>${escHtml(m)}</li>`).join('');
 
   document.getElementById('cookingContent').innerHTML = `
     ${d.preparation ? `
@@ -256,7 +256,7 @@ function renderAuthenticity(d) {
                   : risk.includes('medium')    ? 'medium'
                   : risk.includes('low')       ? 'low' : '';
 
-  const fakes = (d.common_fakes || []).map(f => `
+  const fakes = asArr(d.common_fakes).map(f => `
     <div class="fake-card">
       <h4>${escHtml(f.fake_name || '')}</h4>
       ${f.how_it_is_faked ? `<p><span class="md-bold">How it's faked: </span>${escHtml(f.how_it_is_faked)}</p>` : ''}
@@ -264,8 +264,8 @@ function renderAuthenticity(d) {
     </div>
   `).join('');
 
-  const checks  = (d.authenticity_checks || []).map(c => `<li>${escHtml(c)}</li>`).join('');
-  const reds    = (d.red_flags || []).map(r => `<li>${escHtml(r)}</li>`).join('');
+  const checks  = asArr(d.authenticity_checks).map(c => `<li>${escHtml(c)}</li>`).join('');
+  const reds    = asArr(d.red_flags).map(r => `<li>${escHtml(r)}</li>`).join('');
 
   document.getElementById('authenticityContent').innerHTML = `
     <div class="risk-banner ${riskClass}">
@@ -309,7 +309,7 @@ function renderAuthenticity(d) {
 // =========================================
 
 function renderCultivation(d) {
-  const steps = (d.growing_steps || []).map((s, i) => `
+  const steps = asArr(d.growing_steps).map((s, i) => `
     <li><span class="step-num">${i + 1}</span><span>${escHtml(s)}</span></li>
   `).join('');
 
@@ -378,7 +378,7 @@ function renderCultivation(d) {
 
 function renderPreservation(d) {
   const sl = d.shelf_life || {};
-  const methods = (d.preservation_methods || []).map(m => `
+  const methods = asArr(d.preservation_methods).map(m => `
     <div class="method-card">
       <div class="method-head">
         <span class="method-pill">${escHtml(m.method || '')}</span>
@@ -389,7 +389,7 @@ function renderPreservation(d) {
     </div>
   `).join('');
 
-  const dos = (d.storage_dos_and_donts || []).map(s => `<li>${escHtml(s)}</li>`).join('');
+  const dos = asArr(d.storage_dos_and_donts).map(s => `<li>${escHtml(s)}</li>`).join('');
 
   document.getElementById('preserveContent').innerHTML = `
     <div class="shelf-life-grid">
@@ -445,7 +445,7 @@ function renderPreservation(d) {
 // =========================================
 
 function renderMarkets(d) {
-  const sources = (d.sources || []).map(s => `
+  const sources = asArr(d.sources).map(s => `
     <div class="market-card">
       <span class="market-badge">${escHtml(s.type)}</span>
       <h4>${escHtml(s.type)}</h4>
@@ -500,8 +500,8 @@ function renderMarkets(d) {
 // =========================================
 
 function renderRecipes(d) {
-  const historical = (d.historical_recipes || []).map((r, i) => recipeCard(r, `h${i}`, true)).join('');
-  const modern     = (d.modern_recipes || []).map((r, i) => recipeCard(r, `m${i}`, false)).join('');
+  const historical = asArr(d.historical_recipes).map((r, i) => recipeCard(r, `h${i}`, true)).join('');
+  const modern     = asArr(d.modern_recipes).map((r, i) => recipeCard(r, `m${i}`, false)).join('');
 
   document.getElementById('recipesContent').innerHTML = `
     <div class="era-divider">
@@ -652,6 +652,16 @@ async function post(url, body) {
   const data = await res.json();
   if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
   return data;
+}
+
+// The AI occasionally returns a field as a string (or object) where we expect
+// a list. asArr() guarantees we always get an array to map over, so a tab can
+// never crash on an unexpected shape: arrays pass through, a lone value is
+// wrapped, and empty/missing values become [].
+function asArr(x) {
+  if (Array.isArray(x)) return x;
+  if (x === null || x === undefined || x === '') return [];
+  return [x];
 }
 
 function escHtml(str) {
