@@ -122,42 +122,98 @@
   </section>
 
   <!-- ========== RESULTS ========== -->
-  <section class="results-section" id="resultsSection" style="display:none">
-    <div class="container">
+  <section class="dashboard" id="resultsSection" style="display:none">
+    <div class="dash-shell">
 
-      <div class="ingredient-heading" id="ingredientHeading"></div>
+      <!-- ── Left rail ── -->
+      <aside class="dash-rail">
+        <a class="dash-brand" href="#explore" onclick="exitDashboard(event)">
+          <span class="dash-brand-mark">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#08130D" stroke-width="2.2" stroke-linecap="round"><path d="M12 3c-2 4-3 7-1.5 10.5S15 18 15 21"/><path d="M8 9c1.5 1.5 3.5 2.5 5.5 2.5"/></svg>
+          </span>
+          <span class="dash-brand-name">Food<b>.io</b></span>
+        </a>
 
-      <div class="tabs-bar" id="tabsBar">
-        <button class="tab-btn active" data-tab="overview"     onclick="switchTab('overview')">Overview</button>
-        <button class="tab-btn"        data-tab="cooking"      onclick="switchTab('cooking')">Cook It Right</button>
-        <button class="tab-btn"        data-tab="authenticity" onclick="switchTab('authenticity')">Real or Fake</button>
-        <button class="tab-btn"        data-tab="markets"      onclick="switchTab('markets')">Where to Find</button>
-        <button class="tab-btn"        data-tab="grow"         onclick="switchTab('grow')">Grow It</button>
-        <button class="tab-btn"        data-tab="preserve"     onclick="switchTab('preserve')">Preserve &amp; Store</button>
-        <button class="tab-btn"        data-tab="recipes"      onclick="switchTab('recipes')">Recipes Through Time</button>
-      </div>
+        <div class="dash-rail-label">Sections</div>
+        <nav class="dash-nav">
+          <button class="rail-item tab-btn active" data-tab="overview" onclick="switchTab('overview')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M11 20A7 7 0 0 1 4 13c0-5 4-9 16-10-1 12-5 16-9 17z"/><path d="M4 21c4-6 8-9 12-11"/></svg>
+            <span>Overview</span>
+          </button>
+          <button class="rail-item tab-btn" data-tab="cooking" onclick="switchTab('cooking')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 3c1 3-2 4-2 7a3 3 0 0 0 6 0c0-1.5-1-2-1-2s3 1 3 5a6 6 0 0 1-11 2"/></svg>
+            <span>Cook It Right</span>
+          </button>
+          <button class="rail-item tab-btn" data-tab="authenticity" onclick="switchTab('authenticity')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3.5V12c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6.5z"/><path d="M9 12l2 2 4-4"/></svg>
+            <span>Real or Fake</span>
+          </button>
+          <button class="rail-item tab-btn" data-tab="markets" onclick="switchTab('markets')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span>Where to Find</span>
+          </button>
+          <button class="rail-item tab-btn" data-tab="grow" onclick="switchTab('grow')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 22V11M12 11c0-3-2-5-5-5 0 3 2 5 5 5zM12 13c0-3 2-5 5-5 0 3-2 5-5 5z"/></svg>
+            <span>Grow It</span>
+          </button>
+          <button class="rail-item tab-btn" data-tab="preserve" onclick="switchTab('preserve')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M4 7h16v13H4zM4 7l2-3h12l2 3M9 11h6"/></svg>
+            <span>Preserve &amp; Store</span>
+          </button>
+          <button class="rail-item tab-btn" data-tab="recipes" onclick="switchTab('recipes')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM19 19v2"/></svg>
+            <span>Recipes</span>
+          </button>
+        </nav>
 
-      <div class="tab-pane active" id="overview-pane">
-        <div class="ingredient-photo-slot" id="ingredientImageSlot" style="display:none"></div>
-        <div id="overviewContent"></div>
-      </div>
-      <div class="tab-pane" id="cooking-pane">
-        <div id="cookingContent"></div>
-      </div>
-      <div class="tab-pane" id="authenticity-pane">
-        <div id="authenticityContent"></div>
-      </div>
-      <div class="tab-pane" id="markets-pane">
-        <div id="marketsContent"></div>
-      </div>
-      <div class="tab-pane" id="grow-pane">
-        <div id="growContent"></div>
-      </div>
-      <div class="tab-pane" id="preserve-pane">
-        <div id="preserveContent"></div>
-      </div>
-      <div class="tab-pane" id="recipes-pane">
-        <div id="recipesContent"></div>
+        <div class="dash-rail-foot">
+          <button class="rail-item" id="dashSavesBtn" style="display:none" onclick="openSaves()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17.3l-6 3.7 1.6-6.9L2 9.5l7-.6L12 2.5l3 6.4 7 .6-5.6 4.6 1.6 6.9z"/></svg>
+            <span>My Saves</span>
+          </button>
+          <button class="dash-login" id="dashLoginBtn" onclick="openAuth()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5M15 12H3"/></svg>
+            <span>Log In</span>
+          </button>
+          <div class="dash-user" id="dashUserChip" style="display:none">
+            <span id="dashUserName"></span>
+            <button onclick="signOut()">Sign out</button>
+          </div>
+          <button class="dash-exit" onclick="exitDashboard(event)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <span>Back to home</span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- ── Main ── -->
+      <div class="dash-main">
+        <header class="dash-top">
+          <div class="dash-photo" id="dashPhoto"></div>
+          <div class="dash-id">
+            <div class="dash-eyebrow">Ingredient</div>
+            <h2 class="dash-name" id="dashName"></h2>
+            <div class="dash-meta" id="dashMeta"></div>
+          </div>
+          <button class="dash-save" id="saveSearchBtn" onclick="saveCurrentSearch()">☆ Save</button>
+          <form class="dash-search" onsubmit="return dashSearch(event)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+            <input id="dashSearchInput" placeholder="Look up another ingredient…" autocomplete="off" />
+          </form>
+        </header>
+
+        <div class="dash-content" id="dashContent">
+          <div class="tab-pane active" id="overview-pane">
+            <div class="ingredient-photo-slot" id="ingredientImageSlot" style="display:none"></div>
+            <div id="overviewContent"></div>
+          </div>
+          <div class="tab-pane" id="cooking-pane"><div id="cookingContent"></div></div>
+          <div class="tab-pane" id="authenticity-pane"><div id="authenticityContent"></div></div>
+          <div class="tab-pane" id="markets-pane"><div id="marketsContent"></div></div>
+          <div class="tab-pane" id="grow-pane"><div id="growContent"></div></div>
+          <div class="tab-pane" id="preserve-pane"><div id="preserveContent"></div></div>
+          <div class="tab-pane" id="recipes-pane"><div id="recipesContent"></div></div>
+        </div>
       </div>
 
     </div>

@@ -20,10 +20,15 @@ function setAuth(next) {
 }
 
 function updateAuthUI() {
-  document.getElementById('authBtn').style.display    = auth ? 'none' : '';
-  document.getElementById('userChip').style.display   = auth ? '' : 'none';
-  document.getElementById('savesNavBtn').style.display = auth ? '' : 'none';
-  if (auth) document.getElementById('userName').textContent = auth.username;
+  const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
+  // Landing header
+  show('authBtn', !auth); show('userChip', auth); show('savesNavBtn', auth);
+  // Dashboard rail
+  show('dashLoginBtn', !auth); show('dashUserChip', auth); show('dashSavesBtn', auth);
+  if (auth) {
+    const u = document.getElementById('userName'); if (u) u.textContent = auth.username;
+    const du = document.getElementById('dashUserName'); if (du) du.textContent = auth.username;
+  }
 }
 
 // =========================================
@@ -62,27 +67,28 @@ async function searchIngredient() {
   btn.disabled = true;
   lbl.textContent = 'Searching...';
 
-  // Show results section and scroll to it
+  // Open the dashboard (full-screen app view) and lock the page behind it.
   const section = document.getElementById('resultsSection');
   section.style.display = 'block';
+  document.body.style.overflow = 'hidden';
 
   currentSearch = { ingredient, location: location || null };
 
-  // Heading
-  document.getElementById('ingredientHeading').innerHTML = `
-    <span class="ing-badge">
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
-      Ingredient
-    </span>
-    <div class="heading-row">
-      <h2>${escHtml(ingredient)}</h2>
-      <button class="save-search-btn" id="saveSearchBtn" onclick="saveCurrentSearch()">☆ Save search</button>
-    </div>
-    ${location ? `<p class="ing-location">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-      Sourcing near ${escHtml(location)}
-    </p>` : ''}
-  `;
+  // Topbar identity
+  const cap = ingredient.charAt(0).toUpperCase() + ingredient.slice(1);
+  document.getElementById('dashName').textContent = cap;
+  document.getElementById('dashMeta').innerHTML = location
+    ? `<span class="dash-chip">
+         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+         Sourcing near ${escHtml(location)}
+       </span>`
+    : '';
+  const saveBtn = document.getElementById('saveSearchBtn');
+  if (saveBtn) { saveBtn.textContent = '☆ Save'; saveBtn.classList.remove('saved'); }
+  const ph = document.getElementById('dashPhoto');
+  if (ph) { ph.innerHTML = ''; ph.classList.remove('has-img'); }
+  const dsi = document.getElementById('dashSearchInput');
+  if (dsi) dsi.value = '';
 
   switchTab('overview');
 
@@ -96,8 +102,6 @@ async function searchIngredient() {
   document.getElementById('growContent').innerHTML         = loadingHtml('Researching how to grow it...');
   document.getElementById('preserveContent').innerHTML     = loadingHtml('Looking up storage and preservation...');
   document.getElementById('recipesContent').innerHTML      = loadingHtml('Searching through centuries of history...');
-
-  section.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   // Fire all fetches in parallel
   await Promise.all([
@@ -119,13 +123,38 @@ async function doFetchImage(ingredient) {
   try {
     const data = await post('/ingredient/image', { ingredient, language: 'English' });
     if (data && data.image_url) {
+      const url = data.image_url;
+      // Small photo in the topbar…
+      const ph = document.getElementById('dashPhoto');
+      if (ph) {
+        ph.innerHTML = `<img src="${escAttr(url)}" alt="${escAttr(ingredient)}" onerror="this.closest('.dash-photo').classList.remove('has-img'); this.remove();"/>`;
+        ph.classList.add('has-img');
+      }
+      // …and the large hero photo on the Overview tab.
       const slot = document.getElementById('ingredientImageSlot');
       if (slot) {
-        slot.innerHTML = `<img class="ingredient-photo" src="${escAttr(data.image_url)}" alt="${escAttr(ingredient)}" onerror="this.parentElement.style.display='none'"/>`;
+        slot.innerHTML = `<img class="ingredient-photo" src="${escAttr(url)}" alt="${escAttr(ingredient)}" onerror="this.parentElement.style.display='none'"/>`;
         slot.style.display = 'block';
       }
     }
   } catch (_) { /* image is best-effort */ }
+}
+
+// Search again from inside the dashboard topbar.
+function dashSearch(e) {
+  if (e) e.preventDefault();
+  const val = document.getElementById('dashSearchInput').value.trim();
+  if (!val) return false;
+  document.getElementById('ingredientInput').value = val;
+  searchIngredient();
+  return false;
+}
+
+// Close the dashboard and return to the landing page.
+function exitDashboard(e) {
+  if (e) e.preventDefault();
+  document.getElementById('resultsSection').style.display = 'none';
+  document.body.style.overflow = '';
 }
 
 async function doFetchInfo(ingredient) {
@@ -791,6 +820,8 @@ function toggleRecipe(id) {
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   document.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('active', p.id === `${name}-pane`));
+  const dc = document.getElementById('dashContent');
+  if (dc) dc.scrollTop = 0;
 }
 
 // =========================================
