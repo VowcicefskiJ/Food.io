@@ -173,13 +173,46 @@ async function doFetchPreservation(ingredient) {
   }
 }
 
-async function doFetchMarkets(ingredient, location) {
+async function doFetchMarkets(ingredient, location, coords) {
   try {
-    const data = await post('/ingredient/markets', { ingredient, location, language: 'English' });
+    const body = { ingredient, location, language: 'English' };
+    if (coords) { body.latitude = coords.latitude; body.longitude = coords.longitude; }
+    const data = await post('/ingredient/markets', body);
     renderMarkets(data);
   } catch (e) {
     document.getElementById('marketsContent').innerHTML = errorHtml(e.message);
   }
+}
+
+// Ask the browser for the user's location, then re-run the "Where to Find"
+// search so the AI can surface real farmers/organic markets nearby.
+function useMyLocation() {
+  if (!currentSearch) return;
+  const btn = document.getElementById('useLocBtn');
+  if (!navigator.geolocation) {
+    if (btn) btn.insertAdjacentHTML('afterend', '<p class="loc-note">Your browser can\'t share location — type a city in the search box instead.</p>');
+    return;
+  }
+  if (btn) { btn.disabled = true; btn.textContent = 'Locating…'; }
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      document.getElementById('marketsContent').innerHTML =
+        loadingHtml('Finding farmers &amp; organic markets near you…');
+      doFetchMarkets(currentSearch.ingredient, null, {
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+      });
+    },
+    (err) => {
+      if (btn) { btn.disabled = false; btn.textContent = '📍 Use my location'; }
+      const msg = err.code === 1
+        ? 'Location permission was denied. You can type a city in the search box instead.'
+        : 'Couldn\'t get your location. You can type a city in the search box instead.';
+      const note = document.getElementById('locNote');
+      if (note) { note.textContent = msg; note.style.display = 'block'; }
+    },
+    { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+  );
 }
 
 async function doFetchRecipes(ingredient) {
@@ -571,10 +604,32 @@ function renderPreservation(d) {
 // =========================================
 
 function renderMarkets(d) {
-  const sources = asArr(d.sources).map(s => `
+  const near = d.searched_near || (currentSearch && currentSearch.location) || '';
+
+  // Prompt to use device location when we don't already have a place.
+  const locPrompt = near ? `
+    <div class="loc-banner located">
+      <span class="loc-icon">📍</span>
+      <div>
+        <div class="loc-title">Showing markets near <strong>${escHtml(near)}</strong></div>
+        <button class="loc-link" id="useLocBtn" onclick="useMyLocation()">Use my exact location instead</button>
+      </div>
+    </div>` : `
+    <div class="loc-banner">
+      <span class="loc-icon">📍</span>
+      <div>
+        <div class="loc-title">Find farmers &amp; organic markets near you</div>
+        <div class="loc-sub">Share your location and we'll look up real nearby markets that sell this.</div>
+        <button class="btn-primary loc-cta" id="useLocBtn" onclick="useMyLocation()">📍 Use my location</button>
+        <p class="loc-note" id="locNote" style="display:none"></p>
+      </div>
+    </div>`;
+
+  const places = asArr(d.places).map(s => `
     <div class="market-card">
       <span class="market-badge">${escHtml(s.type)}</span>
-      <h4>${escHtml(s.type)}</h4>
+      <h4>${escHtml(s.name || s.type)}</h4>
+      ${s.name && s.name !== s.type ? `<p class="market-sub">${escHtml(s.type)}</p>` : ''}
       <p class="market-desc">${escHtml(s.description || '')}</p>
       <div class="market-details">
         ${s.why_quality ? `
@@ -602,7 +657,8 @@ function renderMarkets(d) {
   `).join('');
 
   document.getElementById('marketsContent').innerHTML = `
-    <div class="markets-grid">${sources}</div>
+    ${locPrompt}
+    <div class="markets-grid">${places}</div>
     ${d.seasonal_advice ? `
     <div class="insight-strip">
       <div class="card-label">Seasonal Advice</div>

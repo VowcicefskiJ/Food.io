@@ -54,6 +54,8 @@ class IngredientRequest(BaseModel):
     ingredient: str = Field(max_length=MAX_INGREDIENT)
     location: Optional[str] = Field(default=None, max_length=MAX_LOCATION)
     language: str = Field(default="English", max_length=MAX_LANGUAGE)
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 
 app = FastAPI()
@@ -732,6 +734,31 @@ def _wikipedia_image(ingredient: str) -> Optional[str]:
         return None
 
 
+def _reverse_geocode(latitude: float, longitude: float) -> Optional[str]:
+    """Turn GPS coordinates into a human place name (e.g. 'Somerville, Massachusetts')
+    using OpenStreetMap's free Nominatim service. Returns None on failure."""
+    try:
+        lat = max(-90.0, min(90.0, float(latitude)))
+        lon = max(-180.0, min(180.0, float(longitude)))
+        params = urllib.parse.urlencode({
+            "lat": lat, "lon": lon, "format": "json", "zoom": "12", "addressdetails": "1",
+        })
+        url = f"https://nominatim.openstreetmap.org/reverse?{params}"
+        req = urllib.request.Request(url, headers={"User-Agent": "Food.io/1.0 (ingredient sourcing)"})
+        with urllib.request.urlopen(req, timeout=6) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        addr = data.get("address") or {}
+        town = (addr.get("neighbourhood") or addr.get("suburb") or addr.get("city")
+                or addr.get("town") or addr.get("village") or addr.get("county"))
+        region = addr.get("state") or addr.get("region") or addr.get("country")
+        parts = [p for p in (town, region) if p]
+        if parts:
+            return ", ".join(parts)
+        return data.get("display_name")
+    except Exception:
+        return None
+
+
 @app.post("/ingredient/image")
 def ingredient_image(request: IngredientRequest, http_request: Request, user: Optional[dict] = Depends(current_user)):
     _ai_guard(http_request, user)
@@ -946,16 +973,32 @@ def ingredient_markets(request: IngredientRequest, http_request: Request, user: 
     if not request.ingredient.strip():
         raise HTTPException(status_code=400, detail="Ingredient cannot be empty")
 
-    location_context = f"near {request.location}" if request.location else "in a typical city"
-    location_search  = f"in {request.location}" if request.location else "at farmers markets and specialty stores"
+    # If the browser sent GPS coordinates, turn them into a real place name so
+    # the web search can find genuinely nearby markets.
+    location = request.location
+    if not location and request.latitude is not None and request.longitude is not None:
+        location = _reverse_geocode(request.latitude, request.longitude)
+
+    if location:
+        location_search = f"near {location}"
+        location_line = (
+            f'The person is located near "{location}". Prioritize REAL, specific, named '
+            f'farmers markets, organic/natural-food stores, and ethnic grocers that are '
+            f'actually in or close to {location}, with neighborhoods or cross-streets where known.'
+        )
+    else:
+        location_search = "at farmers markets, organic markets, and specialty stores"
+        location_line = "No specific location was given — describe the best types of places to look."
 
     prompt = f"""You are a local food sourcing expert helping people find fresh, high-quality ingredients.
 
 Search the web to find real, current places to buy "{request.ingredient}" {location_search}.
-Look for actual farmers markets, ethnic grocery stores, food co-ops, and specialty shops — not big chains.
+{location_line}
+Focus on farmers markets, organic and natural-food markets, ethnic grocery stores, food co-ops, and specialty shops — never big chains.
 
 Focus ONLY on these source types:
 - Farmers markets and farm stands
+- Organic / natural-food markets and health-food stores (e.g. local co-op naturals)
 - Chinese / Asian supermarkets
 - Korean markets (like H Mart)
 - Japanese grocery stores
@@ -972,10 +1015,12 @@ Respond in {request.language}.
 Return ONLY valid JSON — no markdown, no extra text:
 {{
   "ingredient": "string",
-  "sources": [
+  "searched_near": {json.dumps(location) if location else '""'},
+  "places": [
     {{
       "type": "string",
-      "description": "string (include real store names or market names if found online)",
+      "name": "string (the actual market/store name if found, else empty)",
+      "description": "string (include real store or market names and neighborhoods if found online)",
       "why_quality": "string",
       "what_to_look_for": "string",
       "typical_availability": "string",
@@ -987,7 +1032,7 @@ Return ONLY valid JSON — no markdown, no extra text:
   "sourcing_tip": "string (a specific real-world tip from your search)"
 }}
 
-Provide 3-5 most relevant source types."""
+Provide 3-5 most relevant places — prefer specific named markets near the person when a location is known."""
 
     return _run_json_prompt(prompt)
 
