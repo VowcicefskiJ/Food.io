@@ -68,6 +68,20 @@ The emulator reaches your local backend automatically (the app uses `10.0.2.2:80
 
 **Shortcut without opening the IDE:** `cd mobile && npx expo run:android` builds and launches the same native project from the command line, as long as Android Studio's SDK and an emulator are installed.
 
+## Accounts, saves & rate limits
+
+The web app has an optional account system — click **Sign in** in the header to register or log in (username + password, stored locally in an SQLite file `foodio.db` that's created automatically).
+
+Signed-in users get:
+- **Search history** — every ingredient search is recorded; view or clear it under **My Saves**
+- **Favorites** — "☆ Save search" on any result, and ☆ on any recipe card; saved items live in **My Saves** and re-run with one click
+
+Rate limits (to stop spam — returns HTTP 429 with a Retry-After):
+- **Login/register:** 10 attempts per 5 minutes per IP
+- **AI endpoints:** 60 requests per minute and 600 per hour, per user (or per IP when signed out). One ingredient search = 8 requests, so that's ~7 searches per minute.
+
+Account API: `POST /auth/register`, `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`, `GET|DELETE /me/history`, `GET|POST /me/favorites`, `DELETE /me/favorites/{id}` — authenticated with an `Authorization: Bearer <token>` header.
+
 ## 3. Quick health check
 
 With the backend running:

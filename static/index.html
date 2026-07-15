@@ -25,6 +25,12 @@
     <nav class="nav">
       <a href="#explore" class="nav-link">Explore</a>
       <a href="#meal-planner" class="nav-link">Meal Planner</a>
+      <button class="nav-link nav-btn" id="savesNavBtn" style="display:none" onclick="openSaves()">My Saves</button>
+      <button class="btn-auth" id="authBtn" onclick="openAuth()">Sign in</button>
+      <span class="user-chip" id="userChip" style="display:none">
+        <span id="userName"></span>
+        <button class="user-signout" onclick="signOut()">Sign out</button>
+      </span>
     </nav>
   </div>
 </header>
@@ -199,6 +205,56 @@
     <p class="footer-tagline">Connecting people to real food, real history, real sources.</p>
   </div>
 </footer>
+
+<!-- ========== AUTH MODAL ========== -->
+<div class="overlay" id="authOverlay" style="display:none" onclick="if(event.target===this) closeAuth()">
+  <div class="modal">
+    <button class="modal-x" onclick="closeAuth()" aria-label="Close">×</button>
+    <h3 class="modal-title" id="authTitle">Sign in</h3>
+    <p class="modal-sub" id="authSub">Save your searches and favorite recipes.</p>
+    <div class="field-group" style="margin-bottom:14px">
+      <label class="field-label" for="authUser">Username</label>
+      <input type="text" id="authUser" class="field-input" autocomplete="username"
+             placeholder="e.g. chef_john" onkeydown="if(event.key==='Enter') submitAuth()"/>
+    </div>
+    <div class="field-group" style="margin-bottom:18px">
+      <label class="field-label" for="authPass">Password</label>
+      <input type="password" id="authPass" class="field-input" autocomplete="current-password"
+             placeholder="8+ characters" onkeydown="if(event.key==='Enter') submitAuth()"/>
+    </div>
+    <p class="auth-error" id="authError" style="display:none"></p>
+    <button class="btn-primary" style="width:100%" id="authSubmitBtn" onclick="submitAuth()">
+      <span id="authSubmitLabel">Sign in</span>
+    </button>
+    <p class="auth-switch">
+      <span id="authSwitchText">New here?</span>
+      <a href="javascript:void(0)" onclick="toggleAuthMode()" id="authSwitchLink">Create an account</a>
+    </p>
+  </div>
+</div>
+
+<!-- ========== MY SAVES MODAL ========== -->
+<div class="overlay" id="savesOverlay" style="display:none" onclick="if(event.target===this) closeSaves()">
+  <div class="modal modal-wide">
+    <button class="modal-x" onclick="closeSaves()" aria-label="Close">×</button>
+    <h3 class="modal-title">My Saves</h3>
+    <div class="saves-section">
+      <div class="saves-head">
+        <h4>Saved searches &amp; recipes</h4>
+      </div>
+      <div id="favList" class="saves-list"></div>
+    </div>
+    <div class="saves-section">
+      <div class="saves-head">
+        <h4>Recent searches</h4>
+        <button class="saves-clear" onclick="clearHistory()">Clear history</button>
+      </div>
+      <div id="histList" class="saves-list"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-note" id="toastNote"></div>
 
 <script src="/static/app.js"></script>
 </body>

@@ -1,11 +1,19 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Depends, Header
 from fastapi.responses import PlainTextResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from openai import OpenAI
 from typing import List, Optional
+from collections import defaultdict, deque
 import os
+import re
 import json
+import time
+import hmac
+import hashlib
+import secrets
+import sqlite3
+import threading
 import urllib.parse
 import urllib.request
 
@@ -44,6 +52,280 @@ verification_token = os.getenv("OPENAI_APPS_CHALLENGE", "")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
+# =============================================================================
+# DATABASE (SQLite — created automatically on first run)
+# =============================================================================
+
+DB_PATH = os.getenv("FOODIO_DB", "foodio.db")
+SESSION_DAYS = 30
+
+
+def _db():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def _init_db():
+    with _db() as conn:
+        conn.executescript("""
+            CREATE TABLE IF NOT EXISTS users (
+                id            INTEGER PRIMARY KEY,
+                username      TEXT NOT NULL UNIQUE COLLATE NOCASE,
+                password_hash TEXT NOT NULL,
+                salt          TEXT NOT NULL,
+                created_at    REAL NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS sessions (
+                token      TEXT PRIMARY KEY,
+                user_id    INTEGER NOT NULL REFERENCES users(id),
+                created_at REAL NOT NULL,
+                expires_at REAL NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS history (
+                id          INTEGER PRIMARY KEY,
+                user_id     INTEGER NOT NULL REFERENCES users(id),
+                ingredient  TEXT NOT NULL,
+                location    TEXT,
+                searched_at REAL NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS favorites (
+                id         INTEGER PRIMARY KEY,
+                user_id    INTEGER NOT NULL REFERENCES users(id),
+                kind       TEXT NOT NULL CHECK (kind IN ('search', 'recipe')),
+                title      TEXT NOT NULL,
+                payload    TEXT NOT NULL DEFAULT '{}',
+                created_at REAL NOT NULL,
+                UNIQUE (user_id, kind, title)
+            );
+            CREATE INDEX IF NOT EXISTS idx_history_user ON history(user_id, searched_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_fav_user ON favorites(user_id, created_at DESC);
+        """)
+
+
+_init_db()
+
+
+# =============================================================================
+# RATE LIMITING (in-memory sliding window)
+# =============================================================================
+
+AUTH_LIMIT, AUTH_WINDOW = 10, 300      # login/register attempts per IP: 10 per 5 min
+AI_LIMIT, AI_WINDOW = 60, 60           # AI calls per user/IP: 60 per minute (one search = 8 calls)
+AI_HOURLY_LIMIT, AI_HOURLY_WINDOW = 600, 3600
+
+_rate_lock = threading.Lock()
+_rate_hits: dict = defaultdict(deque)
+
+
+def check_rate(key: str, limit: int, window: int):
+    now = time.time()
+    with _rate_lock:
+        hits = _rate_hits[key]
+        while hits and hits[0] <= now - window:
+            hits.popleft()
+        if len(hits) >= limit:
+            retry_in = max(1, int(hits[0] + window - now) + 1)
+            raise HTTPException(
+                status_code=429,
+                detail=f"Too many requests — please wait {retry_in} seconds and try again",
+                headers={"Retry-After": str(retry_in)},
+            )
+        hits.append(now)
+
+
+def _client_ip(http_request: Request) -> str:
+    return http_request.client.host if http_request.client else "unknown"
+
+
+def _ai_guard(http_request: Request, user: Optional[dict]):
+    key = f"ai:user:{user['id']}" if user else f"ai:ip:{_client_ip(http_request)}"
+    check_rate(key + ":min", AI_LIMIT, AI_WINDOW)
+    check_rate(key + ":hr", AI_HOURLY_LIMIT, AI_HOURLY_WINDOW)
+
+
+# =============================================================================
+# AUTH
+# =============================================================================
+
+class AuthRequest(BaseModel):
+    username: str
+    password: str
+
+
+class FavoriteRequest(BaseModel):
+    kind: str
+    title: str
+    payload: dict = {}
+
+
+def _hash_password(password: str, salt_hex: str) -> str:
+    return hashlib.pbkdf2_hmac(
+        "sha256", password.encode("utf-8"), bytes.fromhex(salt_hex), 200_000
+    ).hex()
+
+
+def _create_session(conn, user_id: int) -> str:
+    token = secrets.token_urlsafe(32)
+    now = time.time()
+    conn.execute(
+        "INSERT INTO sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)",
+        (token, user_id, now, now + SESSION_DAYS * 86400),
+    )
+    return token
+
+
+def current_user(authorization: Optional[str] = Header(None)) -> Optional[dict]:
+    """Optional auth — returns {'id', 'username'} or None."""
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    token = authorization[7:].strip()
+    if not token:
+        return None
+    with _db() as conn:
+        row = conn.execute(
+            """SELECT u.id, u.username, s.expires_at
+               FROM sessions s JOIN users u ON u.id = s.user_id
+               WHERE s.token = ?""",
+            (token,),
+        ).fetchone()
+    if not row or row["expires_at"] < time.time():
+        return None
+    return {"id": row["id"], "username": row["username"]}
+
+
+def require_user(user: Optional[dict] = Depends(current_user)) -> dict:
+    if not user:
+        raise HTTPException(status_code=401, detail="Please sign in first")
+    return user
+
+
+@app.post("/auth/register")
+def auth_register(body: AuthRequest, http_request: Request):
+    check_rate(f"auth:{_client_ip(http_request)}", AUTH_LIMIT, AUTH_WINDOW)
+    username = body.username.strip()
+    if not re.fullmatch(r"[A-Za-z0-9_]{3,30}", username):
+        raise HTTPException(
+            status_code=400,
+            detail="Username must be 3-30 characters: letters, numbers, or underscores",
+        )
+    if len(body.password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+
+    salt = secrets.token_hex(16)
+    password_hash = _hash_password(body.password, salt)
+    with _db() as conn:
+        try:
+            cur = conn.execute(
+                "INSERT INTO users (username, password_hash, salt, created_at) VALUES (?, ?, ?, ?)",
+                (username, password_hash, salt, time.time()),
+            )
+        except sqlite3.IntegrityError:
+            raise HTTPException(status_code=409, detail="That username is already taken")
+        token = _create_session(conn, cur.lastrowid)
+    return {"token": token, "username": username}
+
+
+@app.post("/auth/login")
+def auth_login(body: AuthRequest, http_request: Request):
+    check_rate(f"auth:{_client_ip(http_request)}", AUTH_LIMIT, AUTH_WINDOW)
+    with _db() as conn:
+        row = conn.execute(
+            "SELECT id, username, password_hash, salt FROM users WHERE username = ?",
+            (body.username.strip(),),
+        ).fetchone()
+        if not row or not hmac.compare_digest(
+            _hash_password(body.password, row["salt"]), row["password_hash"]
+        ):
+            raise HTTPException(status_code=401, detail="Invalid username or password")
+        token = _create_session(conn, row["id"])
+    return {"token": token, "username": row["username"]}
+
+
+@app.post("/auth/logout")
+def auth_logout(authorization: Optional[str] = Header(None), user: dict = Depends(require_user)):
+    token = authorization[7:].strip()
+    with _db() as conn:
+        conn.execute("DELETE FROM sessions WHERE token = ?", (token,))
+    return {"ok": True}
+
+
+@app.get("/auth/me")
+def auth_me(user: dict = Depends(require_user)):
+    return {"username": user["username"]}
+
+
+# =============================================================================
+# HISTORY & FAVORITES
+# =============================================================================
+
+@app.get("/me/history")
+def get_history(user: dict = Depends(require_user)):
+    with _db() as conn:
+        rows = conn.execute(
+            """SELECT id, ingredient, location, searched_at FROM history
+               WHERE user_id = ? ORDER BY searched_at DESC LIMIT 50""",
+            (user["id"],),
+        ).fetchall()
+    return {"history": [dict(r) for r in rows]}
+
+
+@app.delete("/me/history")
+def clear_history(user: dict = Depends(require_user)):
+    with _db() as conn:
+        conn.execute("DELETE FROM history WHERE user_id = ?", (user["id"],))
+    return {"ok": True}
+
+
+@app.get("/me/favorites")
+def get_favorites(user: dict = Depends(require_user)):
+    with _db() as conn:
+        rows = conn.execute(
+            """SELECT id, kind, title, payload, created_at FROM favorites
+               WHERE user_id = ? ORDER BY created_at DESC LIMIT 200""",
+            (user["id"],),
+        ).fetchall()
+    favorites = []
+    for r in rows:
+        item = dict(r)
+        try:
+            item["payload"] = json.loads(item["payload"])
+        except (TypeError, json.JSONDecodeError):
+            item["payload"] = {}
+        favorites.append(item)
+    return {"favorites": favorites}
+
+
+@app.post("/me/favorites")
+def add_favorite(body: FavoriteRequest, user: dict = Depends(require_user)):
+    if body.kind not in ("search", "recipe"):
+        raise HTTPException(status_code=400, detail="kind must be 'search' or 'recipe'")
+    title = body.title.strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="title cannot be empty")
+    with _db() as conn:
+        conn.execute(
+            """INSERT INTO favorites (user_id, kind, title, payload, created_at)
+               VALUES (?, ?, ?, ?, ?)
+               ON CONFLICT (user_id, kind, title) DO UPDATE SET payload = excluded.payload""",
+            (user["id"], body.kind, title, json.dumps(body.payload), time.time()),
+        )
+        row = conn.execute(
+            "SELECT id FROM favorites WHERE user_id = ? AND kind = ? AND title = ?",
+            (user["id"], body.kind, title),
+        ).fetchone()
+    return {"ok": True, "id": row["id"]}
+
+
+@app.delete("/me/favorites/{fav_id}")
+def remove_favorite(fav_id: int, user: dict = Depends(require_user)):
+    with _db() as conn:
+        conn.execute(
+            "DELETE FROM favorites WHERE id = ? AND user_id = ?", (fav_id, user["id"])
+        )
+    return {"ok": True}
+
+
 @app.get("/.well-known/openai-apps-challenge", response_class=PlainTextResponse)
 def openai_apps_challenge():
     return verification_token
@@ -60,7 +342,8 @@ def serve_ui():
 
 
 @app.post("/meals", response_model=MealResponse)
-def suggest_meals(request: MealRequest):
+def suggest_meals(request: MealRequest, http_request: Request, user: Optional[dict] = Depends(current_user)):
+    _ai_guard(http_request, user)
     if not request.ingredients:
         raise HTTPException(status_code=400, detail="Ingredients list cannot be empty")
 
@@ -141,16 +424,27 @@ def _wikipedia_image(ingredient: str) -> Optional[str]:
 
 
 @app.post("/ingredient/image")
-def ingredient_image(request: IngredientRequest):
+def ingredient_image(request: IngredientRequest, http_request: Request, user: Optional[dict] = Depends(current_user)):
+    _ai_guard(http_request, user)
     if not request.ingredient.strip():
         raise HTTPException(status_code=400, detail="Ingredient cannot be empty")
     return {"image_url": _wikipedia_image(request.ingredient)}
 
 
 @app.post("/ingredient/info")
-def ingredient_info(request: IngredientRequest):
+def ingredient_info(request: IngredientRequest, http_request: Request, user: Optional[dict] = Depends(current_user)):
+    _ai_guard(http_request, user)
     if not request.ingredient.strip():
         raise HTTPException(status_code=400, detail="Ingredient cannot be empty")
+
+    # Logged-in users get their searches recorded (one entry per search —
+    # the other 7 endpoints of a search fan-out don't record).
+    if user:
+        with _db() as conn:
+            conn.execute(
+                "INSERT INTO history (user_id, ingredient, location, searched_at) VALUES (?, ?, ?, ?)",
+                (user["id"], request.ingredient.strip(), request.location, time.time()),
+            )
 
     prompt = f"""You are a culinary historian and nutritionist expert.
 
@@ -175,7 +469,8 @@ Return ONLY valid JSON with this exact structure — no markdown, no extra text:
 
 
 @app.post("/ingredient/cooking")
-def ingredient_cooking(request: IngredientRequest):
+def ingredient_cooking(request: IngredientRequest, http_request: Request, user: Optional[dict] = Depends(current_user)):
+    _ai_guard(http_request, user)
     if not request.ingredient.strip():
         raise HTTPException(status_code=400, detail="Ingredient cannot be empty")
 
@@ -209,7 +504,8 @@ Provide 3-4 primary cooking methods that genuinely suit this ingredient."""
 
 
 @app.post("/ingredient/authenticity")
-def ingredient_authenticity(request: IngredientRequest):
+def ingredient_authenticity(request: IngredientRequest, http_request: Request, user: Optional[dict] = Depends(current_user)):
+    _ai_guard(http_request, user)
     if not request.ingredient.strip():
         raise HTTPException(status_code=400, detail="Ingredient cannot be empty")
 
@@ -244,7 +540,8 @@ Provide 3-5 common fakes/adulterations and 3-5 authenticity checks."""
 
 
 @app.post("/ingredient/cultivation")
-def ingredient_cultivation(request: IngredientRequest):
+def ingredient_cultivation(request: IngredientRequest, http_request: Request, user: Optional[dict] = Depends(current_user)):
+    _ai_guard(http_request, user)
     if not request.ingredient.strip():
         raise HTTPException(status_code=400, detail="Ingredient cannot be empty")
 
@@ -273,7 +570,8 @@ Return ONLY valid JSON — no markdown, no extra text:
 
 
 @app.post("/ingredient/preservation")
-def ingredient_preservation(request: IngredientRequest):
+def ingredient_preservation(request: IngredientRequest, http_request: Request, user: Optional[dict] = Depends(current_user)):
+    _ai_guard(http_request, user)
     if not request.ingredient.strip():
         raise HTTPException(status_code=400, detail="Ingredient cannot be empty")
 
@@ -310,7 +608,8 @@ Provide 3-4 preservation methods that actually suit this ingredient."""
 
 
 @app.post("/ingredient/markets")
-def ingredient_markets(request: IngredientRequest):
+def ingredient_markets(request: IngredientRequest, http_request: Request, user: Optional[dict] = Depends(current_user)):
+    _ai_guard(http_request, user)
     if not request.ingredient.strip():
         raise HTTPException(status_code=400, detail="Ingredient cannot be empty")
 
@@ -373,7 +672,8 @@ Provide 3-5 most relevant source types."""
 
 
 @app.post("/ingredient/recipes")
-def ingredient_recipes(request: IngredientRequest):
+def ingredient_recipes(request: IngredientRequest, http_request: Request, user: Optional[dict] = Depends(current_user)):
+    _ai_guard(http_request, user)
     if not request.ingredient.strip():
         raise HTTPException(status_code=400, detail="Ingredient cannot be empty")
 
