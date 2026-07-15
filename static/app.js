@@ -771,13 +771,13 @@ function toggleAuthMode() {
 
 function applyAuthMode() {
   const login = authMode === 'login';
-  document.getElementById('authTitle').textContent       = login ? 'Sign in' : 'Create account';
+  document.getElementById('authTitle').textContent       = login ? 'Log in' : 'Create account';
   document.getElementById('authSub').textContent         = login
     ? 'Save your searches and favorite recipes.'
     : 'Pick a username (3-30 letters/numbers) and a password of 8+ characters.';
-  document.getElementById('authSubmitLabel').textContent = login ? 'Sign in' : 'Create account';
+  document.getElementById('authSubmitLabel').textContent = login ? 'Log in' : 'Create account';
   document.getElementById('authSwitchText').textContent  = login ? 'New here?' : 'Already have an account?';
-  document.getElementById('authSwitchLink').textContent  = login ? 'Create an account' : 'Sign in instead';
+  document.getElementById('authSwitchLink').textContent  = login ? 'Create an account' : 'Log in instead';
   document.getElementById('authPass').autocomplete       = login ? 'current-password' : 'new-password';
 }
 
