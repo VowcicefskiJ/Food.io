@@ -95,7 +95,7 @@ _CSP = (
     "form-action 'self'; "
     "frame-ancestors 'none'; "
     "object-src 'none'; "
-    "img-src 'self' data: https://*.wikimedia.org https://*.wikipedia.org; "
+    "img-src 'self' data: https:; "
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
     "font-src 'self' https://fonts.gstatic.com; "
     "script-src 'self' 'unsafe-inline'; "
@@ -742,6 +742,25 @@ def _run_json_prompt(prompt: str, with_search: bool = True):
     return data
 
 
+def _themealdb_image(ingredient: str) -> Optional[str]:
+    """TheMealDB hosts clean, recognizable product photos of common ingredients
+    on a plain background (e.g. the actual turmeric powder, not the plant).
+    Returns the URL only if a real image exists for this ingredient."""
+    try:
+        name = urllib.parse.quote(ingredient.strip().title())
+        url = f"https://www.themealdb.com/images/ingredients/{name}.png"
+        req = urllib.request.Request(url, headers={"User-Agent": "Food.io/1.0"})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            ctype = resp.headers.get("Content-Type", "")
+            clen = int(resp.headers.get("Content-Length") or 0)
+            # A missing ingredient returns a tiny placeholder; require a real image.
+            if resp.status == 200 and "image" in ctype and clen > 1500:
+                return url
+    except Exception:
+        pass
+    return None
+
+
 def _wikipedia_image(ingredient: str) -> Optional[str]:
     try:
         title = urllib.parse.quote(ingredient.strip().replace(" ", "_"))
@@ -753,6 +772,12 @@ def _wikipedia_image(ingredient: str) -> Optional[str]:
         return thumb
     except Exception:
         return None
+
+
+def _ingredient_photo(ingredient: str) -> Optional[str]:
+    """Prefer a clean product shot of the actual ingredient; fall back to
+    Wikipedia's lead image for anything TheMealDB doesn't cover."""
+    return _themealdb_image(ingredient) or _wikipedia_image(ingredient)
 
 
 def _reverse_geocode(latitude: float, longitude: float) -> Optional[str]:
@@ -785,7 +810,7 @@ def ingredient_image(request: IngredientRequest, http_request: Request, user: Op
     _ai_guard(http_request, user)
     if not request.ingredient.strip():
         raise HTTPException(status_code=400, detail="Ingredient cannot be empty")
-    return {"image_url": _wikipedia_image(request.ingredient)}
+    return {"image_url": _ingredient_photo(request.ingredient)}
 
 
 @app.post("/ingredient/info")

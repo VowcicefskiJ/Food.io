@@ -2557,3 +2557,27 @@ body { background: var(--bg); }
 /* Compact overview hero photo so the tab fits a screen */
 .dashboard .ingredient-photo { max-height: 150px; }
 .dashboard .dash-content { padding-top: 18px; }
+
+/* Ingredient photo — a neat card showing the WHOLE item (contain, not cropped) */
+.dashboard .ingredient-photo-slot {
+  background: #ECE6DB;
+  border: 1px solid var(--d-line2);
+  border-radius: 14px;
+  padding: 10px;
+  margin-bottom: 14px;
+  width: 240px;
+  max-width: 100%;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dashboard .ingredient-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border: none;
+  border-radius: 6px;
+}
+.dash-photo.has-img { background: #ECE6DB; }
+.dash-photo img { object-fit: contain; }
