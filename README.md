@@ -82,6 +82,10 @@ Rate limits (to stop spam — returns HTTP 429 with a Retry-After):
 
 Account API: `POST /auth/register`, `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`, `GET|DELETE /me/history`, `GET|POST /me/favorites`, `DELETE /me/favorites/{id}` — authenticated with an `Authorization: Bearer <token>` header.
 
+Passwords are hashed with PBKDF2 (600k iterations); the app sets security headers (CSP, HSTS, anti-clickjacking), validates the Host header, caps request sizes, and defends against username-enumeration timing attacks.
+
+> **Deploying this publicly?** Read **[SECURITY.md](SECURITY.md)** first — it lists the required environment variables (`ALLOWED_HOSTS`, `TRUST_PROXY`, `HTTPS_ONLY`, `FOODIO_DB`) and the HTTPS/reverse-proxy setup you need before real users touch it.
+
 ## 3. Quick health check
 
 With the backend running:
