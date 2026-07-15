@@ -2378,3 +2378,142 @@ a { text-decoration: none; }
   .dash-save { margin-left: 0; }
   .dashboard .grow-summary { grid-template-columns: 1fr; }
 }
+
+/* =============================================================================
+   WHOLE-SITE DARK THEME — "botanical console"
+   Redefines global tokens to dark (landing page, login modal, My Saves, toast)
+   to match the dashboard. The dashboard uses its own --d-* tokens and is
+   unaffected. Appended last so it wins the cascade.
+   ============================================================================= */
+
+:root {
+  --bg:        #0C1310;
+  --surface:   #141F19;
+  --surface-2: #1B2A22;
+
+  --green-50:  rgba(95,214,154,.10);
+  --green-100: rgba(95,214,154,.20);
+  --green-200: #7FC79A;
+
+  --amber:     #E7B85C;
+  --amber-bg:  rgba(231,184,92,.10);
+  --terra:     #F0714E;
+  --terra-bg:  rgba(240,113,78,.10);
+
+  --text:    #E7EEE8;
+  --text-2:  #A6BAAC;
+  --text-3:  #7A8F82;
+  --text-4:  #566A5D;
+
+  --border:   #26362C;
+  --border-2: #32473A;
+
+  --accent:   #5FD69A;
+  --accent-2: #38B074;
+  --mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace;
+}
+
+body { background: var(--bg); }
+
+/* ── Header ── */
+.header {
+  background: rgba(10,16,13,.82);
+  border-bottom: 1px solid var(--border);
+}
+.logo { color: var(--text); }
+.logo-icon path[fill="#2E6B28"] { fill: var(--accent); }
+.logo-icon path[stroke="#2E6B28"] { stroke: var(--accent); }
+.nav-link { color: var(--text-3); }
+.nav-link:hover { color: var(--accent); background: var(--green-50); }
+.btn-auth, .header-cta { background: var(--accent); color: #08130D; }
+.btn-auth:hover, .header-cta:hover { background: var(--accent); box-shadow: 0 0 22px rgba(95,214,154,.4); }
+.btn-auth svg { stroke: #08130D; }
+.user-chip { background: var(--green-50); border-color: var(--green-100); color: var(--text); }
+.user-signout { background: var(--surface); border-color: var(--border-2); color: var(--text-3); }
+
+/* ── Eyebrows / labels → mono for a technical feel ── */
+.hero-eyebrow, .section-eyebrow, .card-label, .footer-fine,
+.search-card-sub, .quick-tries-label, .stat-label, .mobile-note {
+  font-family: var(--mono);
+}
+.section-eyebrow { color: var(--accent); }
+
+/* ── Hero (already dark; refine accents) ── */
+.hero { background: linear-gradient(150deg, #10201A 0%, #0A100D 60%, #070C09 100%); }
+.hero-title em { color: var(--amber); }
+
+/* ── Search card ── */
+.search-card {
+  background: linear-gradient(180deg, var(--surface) 0%, #111A15 100%);
+  border: 1px solid var(--border-2);
+  box-shadow: 0 24px 70px rgba(0,0,0,.5);
+}
+.search-card-title { color: var(--text); }
+.field-input, .field-select, .tag-input-wrap {
+  background: var(--bg); border-color: var(--border-2); color: var(--text);
+}
+.field-input:focus, .field-select:focus, .tag-input-wrap:focus-within {
+  border-color: var(--accent); box-shadow: 0 0 0 3px rgba(95,214,154,.15);
+}
+.field-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%237A8F82' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+}
+.btn-primary { background: var(--accent); color: #08130D; }
+.btn-primary:hover { background: var(--accent); box-shadow: 0 4px 22px rgba(95,214,154,.4); }
+.btn-primary svg { stroke: #08130D; }
+.chip { background: var(--green-50); border-color: var(--green-100); color: var(--accent); }
+.chip:hover { background: var(--green-100); border-color: var(--accent); }
+
+/* ── Features ── */
+.features-section { background: var(--bg); }
+.feature-card {
+  background: linear-gradient(180deg, var(--surface) 0%, #111A15 100%);
+  border-color: var(--border);
+  box-shadow: none;
+}
+.feature-card:hover { border-color: var(--accent); box-shadow: 0 0 26px rgba(95,214,154,.12); }
+.feature-icon { background: var(--green-50); border-color: var(--green-100); }
+.feature-card h3 { color: var(--text); }
+
+/* ── How it works ── */
+.how-section { background: #0A100D; border-color: var(--border); }
+.how-num { background: var(--accent); color: #08130D; box-shadow: 0 0 22px rgba(95,214,154,.35); }
+.how-step h3 { color: var(--text); }
+.how-arrow { color: var(--accent); }
+
+/* ── Meal planner ── */
+.planner-section { background: var(--bg); }
+.section-title { color: var(--text); }
+.planner-card {
+  background: linear-gradient(180deg, var(--surface) 0%, #111A15 100%);
+  border-color: var(--border);
+}
+.tag { background: var(--accent); color: #08130D; }
+.tag-x { color: rgba(8,19,13,.6); }
+.segmented { background: var(--bg); border-color: var(--border-2); }
+.segment-active { background: var(--accent); color: #08130D; }
+.segment.active { background: var(--accent); color: #08130D; }
+.meal-card {
+  background: linear-gradient(180deg, var(--surface) 0%, #111A15 100%);
+  border-color: var(--border);
+}
+.meal-card h4 { color: var(--text); }
+.region-badge, .meal-region {
+  background: var(--amber-bg); border-color: rgba(231,184,92,.3); color: var(--amber);
+}
+
+/* ── Mobile section (already dark green) ── */
+.mobile-section { background: linear-gradient(150deg, #10201A, #070C09); }
+.mobile-note code { background: rgba(255,255,255,.07); color: var(--accent); }
+
+/* ── Footer ── */
+.footer { background: #070C09; border-top: 1px solid var(--border); }
+
+/* ── Login modal / My Saves (global components, now dark) ── */
+.modal { background: linear-gradient(180deg, var(--surface) 0%, #111A15 100%); border: 1px solid var(--border-2); }
+.modal-title { color: var(--text); }
+.auth-switch a, .saves-link:hover { color: var(--accent); }
+.btn-auth#authSubmitBtn, .modal .btn-primary { background: var(--accent); color: #08130D; }
+.saves-item { background: var(--bg); border-color: var(--border); }
+.saves-item:hover { border-color: var(--border-2); }
+.toast-note { background: var(--surface-2); border: 1px solid var(--border-2); color: var(--text); }
