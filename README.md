@@ -1,6 +1,8 @@
 # Food.io
 
-Look up any ingredient and get the full story — a photo, traditional regional dishes, how to cook it correctly, how to spot fakes and buy the real thing, how to grow it, and how to store or preserve it with realistic shelf lives. Powered by AI with live web search, so there's no database to maintain.
+Look up any ingredient and get the full story — a photo, traditional regional dishes, how to cook it correctly, how to spot fakes and buy the real thing, how to grow it, and how to store or preserve it with realistic shelf lives. Powered by AI with live web search, so there's no ingredient database to maintain.
+
+Create an account (just a username and password) to keep your search history and save favorite searches and recipes. Accounts live in a local SQLite file (`foodio.db`, created automatically), and built-in rate limiting stops anyone from spamming logins or search requests.
 
 There are two apps in this repo, both talking to the same FastAPI backend:
 
@@ -97,9 +99,11 @@ Screenshots help for visual issues. Every change gets committed to this repo so 
 
 ```
 main.py              FastAPI backend — all AI endpoints live here
+accounts.py          Accounts: auth, search history, favorites, rate limiting
 requirements.txt     Python dependencies
 run.sh / run.bat     One-command starters (Mac/Linux · Windows)
 .env.example         Template for your API key
+foodio.db            SQLite database (created on first run, not committed)
 static/              Web frontend (vanilla JS, no build step)
 mobile/              Expo / React Native app
 MOBILE_HANDOFF.md    Full technical inventory of the mobile app
@@ -120,3 +124,28 @@ All `POST` with JSON body `{"ingredient": "...", "language": "English"}` unless 
 | `/ingredient/preservation` | Shelf life, storage, preservation methods, spoilage signs |
 | `/ingredient/recipes` | Historical + modern recipes |
 | `/meals` | Meal suggestions from `{"ingredients": [...], "meal_type": "dinner", "language": "English"}` |
+
+### Accounts, history & favorites
+
+Sessions use an HttpOnly cookie (set automatically on register/login); API clients can instead send the token as `Authorization: Bearer <token>`.
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/auth/register` | POST | Create account: `{"username": "...", "password": "..."}` (username 3–20 chars, password 8+) |
+| `/auth/login` | POST | Log in with the same body; sets the session cookie |
+| `/auth/logout` | POST | End the current session |
+| `/auth/me` | GET | Current user, or 401 if logged out |
+| `/history` | GET | Your recent searches (recorded automatically while logged in) |
+| `/history` | DELETE | Clear your search history |
+| `/favorites` | GET | Your saved searches and recipes |
+| `/favorites` | POST | Save one: `{"kind": "search" \| "recipe", "title": "...", "payload": {...}}` |
+| `/favorites/{id}` | DELETE | Remove a favorite |
+
+### Rate limits
+
+Limits are per client (logged-in user, otherwise IP) over a sliding 5-minute window:
+
+- **Login/register:** 10 attempts per 5 minutes — blocks credential-stuffing and signup spam.
+- **Search endpoints** (`/ingredient/*`, `/meals`): 60 requests per 5 minutes. One full ingredient search fires 8 backend calls, so that's roughly 7 full searches per 5 minutes.
+
+Over the limit, the API returns `429` with a `Retry-After` header, and the web UI shows a friendly "slow down" message.

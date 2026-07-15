@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import PlainTextResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -8,6 +8,9 @@ import os
 import json
 import urllib.parse
 import urllib.request
+
+import accounts
+from accounts import enforce_search_rate_limit, get_optional_user, record_search
 
 
 class MealRequest(BaseModel):
@@ -41,6 +44,9 @@ client = OpenAI(api_key=api_key)
 
 verification_token = os.getenv("OPENAI_APPS_CHALLENGE", "")
 
+accounts.init_db()
+app.include_router(accounts.router)
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
@@ -59,10 +65,12 @@ def serve_ui():
     return FileResponse("static/index.html")
 
 
-@app.post("/meals", response_model=MealResponse)
-def suggest_meals(request: MealRequest):
+@app.post("/meals", response_model=MealResponse, dependencies=[Depends(enforce_search_rate_limit)])
+def suggest_meals(request: MealRequest, http_request: Request):
     if not request.ingredients:
         raise HTTPException(status_code=400, detail="Ingredients list cannot be empty")
+
+    record_search(get_optional_user(http_request), "meal", ", ".join(request.ingredients))
 
     if request.meal_type not in {"breakfast", "lunch", "dinner"}:
         raise HTTPException(
@@ -140,17 +148,22 @@ def _wikipedia_image(ingredient: str) -> Optional[str]:
         return None
 
 
-@app.post("/ingredient/image")
+@app.post("/ingredient/image", dependencies=[Depends(enforce_search_rate_limit)])
 def ingredient_image(request: IngredientRequest):
     if not request.ingredient.strip():
         raise HTTPException(status_code=400, detail="Ingredient cannot be empty")
     return {"image_url": _wikipedia_image(request.ingredient)}
 
 
-@app.post("/ingredient/info")
-def ingredient_info(request: IngredientRequest):
+@app.post("/ingredient/info", dependencies=[Depends(enforce_search_rate_limit)])
+def ingredient_info(request: IngredientRequest, http_request: Request):
     if not request.ingredient.strip():
         raise HTTPException(status_code=400, detail="Ingredient cannot be empty")
+
+    record_search(
+        get_optional_user(http_request), "ingredient",
+        request.ingredient.strip(), request.location,
+    )
 
     prompt = f"""You are a culinary historian and nutritionist expert.
 
@@ -174,7 +187,7 @@ Return ONLY valid JSON with this exact structure — no markdown, no extra text:
     return _run_json_prompt(prompt)
 
 
-@app.post("/ingredient/cooking")
+@app.post("/ingredient/cooking", dependencies=[Depends(enforce_search_rate_limit)])
 def ingredient_cooking(request: IngredientRequest):
     if not request.ingredient.strip():
         raise HTTPException(status_code=400, detail="Ingredient cannot be empty")
@@ -208,7 +221,7 @@ Provide 3-4 primary cooking methods that genuinely suit this ingredient."""
     return _run_json_prompt(prompt)
 
 
-@app.post("/ingredient/authenticity")
+@app.post("/ingredient/authenticity", dependencies=[Depends(enforce_search_rate_limit)])
 def ingredient_authenticity(request: IngredientRequest):
     if not request.ingredient.strip():
         raise HTTPException(status_code=400, detail="Ingredient cannot be empty")
@@ -243,7 +256,7 @@ Provide 3-5 common fakes/adulterations and 3-5 authenticity checks."""
     return _run_json_prompt(prompt)
 
 
-@app.post("/ingredient/cultivation")
+@app.post("/ingredient/cultivation", dependencies=[Depends(enforce_search_rate_limit)])
 def ingredient_cultivation(request: IngredientRequest):
     if not request.ingredient.strip():
         raise HTTPException(status_code=400, detail="Ingredient cannot be empty")
@@ -272,7 +285,7 @@ Return ONLY valid JSON — no markdown, no extra text:
     return _run_json_prompt(prompt)
 
 
-@app.post("/ingredient/preservation")
+@app.post("/ingredient/preservation", dependencies=[Depends(enforce_search_rate_limit)])
 def ingredient_preservation(request: IngredientRequest):
     if not request.ingredient.strip():
         raise HTTPException(status_code=400, detail="Ingredient cannot be empty")
@@ -309,7 +322,7 @@ Provide 3-4 preservation methods that actually suit this ingredient."""
     return _run_json_prompt(prompt)
 
 
-@app.post("/ingredient/markets")
+@app.post("/ingredient/markets", dependencies=[Depends(enforce_search_rate_limit)])
 def ingredient_markets(request: IngredientRequest):
     if not request.ingredient.strip():
         raise HTTPException(status_code=400, detail="Ingredient cannot be empty")
@@ -372,7 +385,7 @@ Provide 3-5 most relevant source types."""
     return data
 
 
-@app.post("/ingredient/recipes")
+@app.post("/ingredient/recipes", dependencies=[Depends(enforce_search_rate_limit)])
 def ingredient_recipes(request: IngredientRequest):
     if not request.ingredient.strip():
         raise HTTPException(status_code=400, detail="Ingredient cannot be empty")

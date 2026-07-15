@@ -25,6 +25,9 @@
     <nav class="nav">
       <a href="#explore" class="nav-link">Explore</a>
       <a href="#meal-planner" class="nav-link">Meal Planner</a>
+      <span class="account-area" id="accountArea">
+        <button class="btn-account" id="loginNavBtn" onclick="openAuthModal()">Log in</button>
+      </span>
     </nav>
   </div>
 </header>
@@ -199,6 +202,47 @@
     <p class="footer-tagline">Connecting people to real food, real history, real sources.</p>
   </div>
 </footer>
+
+<!-- ========== AUTH MODAL ========== -->
+<div class="modal-overlay" id="authModal" style="display:none" onclick="if(event.target===this) closeAuthModal()">
+  <div class="auth-modal">
+    <button class="modal-close" onclick="closeAuthModal()" aria-label="Close">×</button>
+    <h3 class="auth-title" id="authTitle">Welcome back</h3>
+    <p class="auth-sub" id="authSub">Log in to keep your search history and favorites.</p>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="authTabLogin"  onclick="setAuthMode('login')">Log In</button>
+      <button class="auth-tab"        id="authTabSignup" onclick="setAuthMode('signup')">Sign Up</button>
+    </div>
+    <form onsubmit="submitAuth(event)">
+      <div class="field-group">
+        <label class="field-label" for="authUsername">Username</label>
+        <input type="text" id="authUsername" class="field-input" placeholder="e.g. saffron_fan" autocomplete="username" />
+      </div>
+      <div class="field-group" style="margin-top:14px">
+        <label class="field-label" for="authPassword">Password</label>
+        <input type="password" id="authPassword" class="field-input" placeholder="At least 8 characters" autocomplete="current-password" />
+      </div>
+      <div class="auth-error" id="authError" style="display:none"></div>
+      <button type="submit" class="btn-primary auth-submit" id="authSubmitBtn">Log In</button>
+    </form>
+  </div>
+</div>
+
+<!-- ========== ACCOUNT DRAWER (favorites + history) ========== -->
+<div class="drawer-overlay" id="drawerOverlay" style="display:none" onclick="closeDrawer()"></div>
+<aside class="drawer" id="accountDrawer">
+  <div class="drawer-head">
+    <h3 class="drawer-title">My Kitchen</h3>
+    <button class="modal-close" onclick="closeDrawer()" aria-label="Close">×</button>
+  </div>
+  <div class="drawer-tabs">
+    <button class="drawer-tab active" id="drawerTabFavs" onclick="switchDrawerTab('favorites')">★ Favorites</button>
+    <button class="drawer-tab"        id="drawerTabHist" onclick="switchDrawerTab('history')">🕐 History</button>
+  </div>
+  <div class="drawer-content" id="drawerContent"></div>
+</aside>
+
+<div class="toast" id="toast"></div>
 
 <script src="/static/app.js"></script>
 </body>

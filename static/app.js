@@ -3,6 +3,262 @@
    ========================================= */
 
 let ingredientTags = [];
+let currentUser    = null;   // {id, username} when logged in
+let lastSearch     = null;   // {ingredient, location} of the current results
+let authMode       = 'login';
+let drawerTab      = 'favorites';
+const recipeStore  = {};     // recipe-card id -> recipe data (for saving favorites)
+
+// =========================================
+// ACCOUNT / AUTH
+// =========================================
+
+async function initAccount() {
+  try {
+    const res = await fetch('/auth/me');
+    if (res.ok) currentUser = await res.json();
+  } catch (_) { /* stay logged out */ }
+  renderAccountArea();
+}
+
+function renderAccountArea() {
+  const area = document.getElementById('accountArea');
+  if (currentUser) {
+    area.innerHTML = `
+      <button class="btn-account logged-in" onclick="openDrawer()">
+        <span class="account-avatar">${escHtml(currentUser.username[0].toUpperCase())}</span>
+        ${escHtml(currentUser.username)}
+      </button>
+      <button class="btn-account-secondary" onclick="logout()">Log out</button>
+    `;
+  } else {
+    area.innerHTML = `<button class="btn-account" id="loginNavBtn" onclick="openAuthModal()">Log in</button>`;
+  }
+  updateSaveSearchBtn();
+}
+
+function openAuthModal() {
+  document.getElementById('authModal').style.display = 'flex';
+  document.getElementById('authError').style.display = 'none';
+  setAuthMode('login');
+  document.getElementById('authUsername').focus();
+}
+
+function closeAuthModal() {
+  document.getElementById('authModal').style.display = 'none';
+}
+
+function setAuthMode(mode) {
+  authMode = mode;
+  const login = mode === 'login';
+  document.getElementById('authTabLogin').classList.toggle('active', login);
+  document.getElementById('authTabSignup').classList.toggle('active', !login);
+  document.getElementById('authTitle').textContent = login ? 'Welcome back' : 'Create your account';
+  document.getElementById('authSub').textContent = login
+    ? 'Log in to keep your search history and favorites.'
+    : 'Pick a username to start saving searches and recipes.';
+  document.getElementById('authSubmitBtn').textContent = login ? 'Log In' : 'Sign Up';
+  document.getElementById('authError').style.display = 'none';
+}
+
+async function submitAuth(e) {
+  e.preventDefault();
+  const username = document.getElementById('authUsername').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const errEl    = document.getElementById('authError');
+  const btn      = document.getElementById('authSubmitBtn');
+
+  if (!username || !password) {
+    errEl.textContent = 'Please enter a username and password.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  try {
+    currentUser = await post(authMode === 'login' ? '/auth/login' : '/auth/register', { username, password });
+    closeAuthModal();
+    document.getElementById('authPassword').value = '';
+    renderAccountArea();
+    showToast(authMode === 'login' ? `Welcome back, ${currentUser.username}!` : `Welcome to Food.io, ${currentUser.username}!`);
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function logout() {
+  try { await post('/auth/logout', {}); } catch (_) { /* clear locally anyway */ }
+  currentUser = null;
+  closeDrawer();
+  renderAccountArea();
+  showToast('Logged out.');
+}
+
+// =========================================
+// FAVORITES + HISTORY DRAWER
+// =========================================
+
+function openDrawer(tab) {
+  if (!currentUser) { openAuthModal(); return; }
+  document.getElementById('drawerOverlay').style.display = 'block';
+  document.getElementById('accountDrawer').classList.add('open');
+  switchDrawerTab(tab || drawerTab);
+}
+
+function closeDrawer() {
+  document.getElementById('drawerOverlay').style.display = 'none';
+  document.getElementById('accountDrawer').classList.remove('open');
+}
+
+function switchDrawerTab(tab) {
+  drawerTab = tab;
+  document.getElementById('drawerTabFavs').classList.toggle('active', tab === 'favorites');
+  document.getElementById('drawerTabHist').classList.toggle('active', tab === 'history');
+  if (tab === 'favorites') loadFavorites(); else loadHistory();
+}
+
+async function loadFavorites() {
+  const box = document.getElementById('drawerContent');
+  box.innerHTML = loadingHtml('Loading favorites...');
+  try {
+    const data = await getJson('/favorites');
+    const favs = data.favorites || [];
+    if (!favs.length) {
+      box.innerHTML = `<div class="drawer-empty">No favorites yet.<br/>Star a search or a recipe to save it here.</div>`;
+      return;
+    }
+    box.innerHTML = favs.map(f => f.kind === 'search' ? favSearchItem(f) : favRecipeItem(f)).join('');
+  } catch (e) {
+    box.innerHTML = errorHtml(e.message);
+  }
+}
+
+function favSearchItem(f) {
+  const p = f.payload || {};
+  return `
+    <div class="drawer-item" onclick="rerunSearch('${escAttr(p.ingredient || f.title)}', '${escAttr(p.location || '')}')">
+      <div class="drawer-item-main">
+        <span class="drawer-item-kind">🔍 Search</span>
+        <span class="drawer-item-title">${escHtml(f.title)}</span>
+        ${p.location ? `<span class="drawer-item-sub">📍 ${escHtml(p.location)}</span>` : ''}
+      </div>
+      <button class="drawer-item-delete" onclick="deleteFavorite(event, ${f.id})" title="Remove">×</button>
+    </div>
+  `;
+}
+
+function favRecipeItem(f) {
+  const p = f.payload || {};
+  return `
+    <div class="drawer-item recipe" onclick="this.classList.toggle('expanded')">
+      <div class="drawer-item-main">
+        <span class="drawer-item-kind recipe">📜 Recipe</span>
+        <span class="drawer-item-title">${escHtml(f.title)}</span>
+        ${p.era || p.style ? `<span class="drawer-item-sub">${escHtml(p.era || p.style)}${p.region ? ' · ' + escHtml(p.region) : ''}</span>` : ''}
+        <div class="drawer-item-detail">
+          ${p.description ? `<p>${escHtml(p.description)}</p>` : ''}
+          ${p.ingredients_summary ? `<p><span class="md-bold">Ingredients: </span>${escHtml(p.ingredients_summary)}</p>` : ''}
+          ${p.method ? `<p><span class="md-bold">Method: </span>${escHtml(p.method)}</p>` : ''}
+        </div>
+      </div>
+      <button class="drawer-item-delete" onclick="deleteFavorite(event, ${f.id})" title="Remove">×</button>
+    </div>
+  `;
+}
+
+async function deleteFavorite(e, id) {
+  e.stopPropagation();
+  try {
+    await del(`/favorites/${id}`);
+    loadFavorites();
+  } catch (err) {
+    showToast(err.message);
+  }
+}
+
+async function loadHistory() {
+  const box = document.getElementById('drawerContent');
+  box.innerHTML = loadingHtml('Loading history...');
+  try {
+    const data = await getJson('/history');
+    const items = data.history || [];
+    if (!items.length) {
+      box.innerHTML = `<div class="drawer-empty">No searches yet.<br/>Your ingredient and meal searches will show up here.</div>`;
+      return;
+    }
+    box.innerHTML = `
+      <button class="drawer-clear" onclick="clearHistory()">Clear history</button>
+      ${items.map(h => `
+        <div class="drawer-item" ${h.search_type === 'ingredient'
+          ? `onclick="rerunSearch('${escAttr(h.query)}', '${escAttr(h.location || '')}')"` : ''}>
+          <div class="drawer-item-main">
+            <span class="drawer-item-kind">${h.search_type === 'meal' ? '🍽 Meal plan' : '🔍 Search'}</span>
+            <span class="drawer-item-title">${escHtml(h.query)}</span>
+            <span class="drawer-item-sub">${h.location ? '📍 ' + escHtml(h.location) + ' · ' : ''}${timeAgo(h.created_at)}</span>
+          </div>
+        </div>
+      `).join('')}
+    `;
+  } catch (e) {
+    box.innerHTML = errorHtml(e.message);
+  }
+}
+
+async function clearHistory() {
+  try {
+    await del('/history');
+    loadHistory();
+  } catch (e) {
+    showToast(e.message);
+  }
+}
+
+function rerunSearch(ingredient, location) {
+  closeDrawer();
+  document.getElementById('ingredientInput').value = ingredient;
+  document.getElementById('locationInput').value = location || '';
+  searchIngredient();
+}
+
+// =========================================
+// SAVING FAVORITES
+// =========================================
+
+function updateSaveSearchBtn() {
+  const btn = document.getElementById('saveSearchBtn');
+  if (btn) btn.style.display = lastSearch ? 'inline-flex' : 'none';
+}
+
+async function saveCurrentSearch() {
+  if (!lastSearch) return;
+  if (!currentUser) { openAuthModal(); return; }
+  try {
+    await post('/favorites', {
+      kind: 'search',
+      title: lastSearch.ingredient,
+      payload: lastSearch,
+    });
+    showToast('★ Search saved to favorites');
+  } catch (e) {
+    showToast(e.message);
+  }
+}
+
+async function saveRecipeFav(e, cardId) {
+  e.stopPropagation();
+  if (!currentUser) { openAuthModal(); return; }
+  const r = recipeStore[cardId];
+  if (!r) return;
+  try {
+    await post('/favorites', { kind: 'recipe', title: r.name || 'Recipe', payload: r });
+    showToast('★ Recipe saved to favorites');
+  } catch (err) {
+    showToast(err.message);
+  }
+}
 
 // =========================================
 // INGREDIENT SEARCH
@@ -27,13 +283,17 @@ async function searchIngredient() {
   const section = document.getElementById('resultsSection');
   section.style.display = 'block';
 
+  lastSearch = location ? { ingredient, location } : { ingredient };
+
   // Heading
   document.getElementById('ingredientHeading').innerHTML = `
     <span class="ing-badge">
       <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
       Ingredient
     </span>
-    <h2>${escHtml(ingredient)}</h2>
+    <h2>${escHtml(ingredient)}
+      <button class="btn-save-search" id="saveSearchBtn" onclick="saveCurrentSearch()" title="Save this search to favorites">★ Save search</button>
+    </h2>
     ${location ? `<p class="ing-location">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
       Sourcing near ${escHtml(location)}
@@ -57,7 +317,7 @@ async function searchIngredient() {
 
   // Fire all fetches in parallel
   await Promise.all([
-    doFetchInfo(ingredient),
+    doFetchInfo(ingredient, location || null),
     doFetchImage(ingredient),
     doFetchCooking(ingredient),
     doFetchAuthenticity(ingredient),
@@ -84,9 +344,9 @@ async function doFetchImage(ingredient) {
   } catch (_) { /* image is best-effort */ }
 }
 
-async function doFetchInfo(ingredient) {
+async function doFetchInfo(ingredient, location) {
   try {
-    const data = await post('/ingredient/info', { ingredient, language: 'English' });
+    const data = await post('/ingredient/info', { ingredient, location, language: 'English' });
     renderOverview(data);
   } catch (e) {
     document.getElementById('overviewContent').innerHTML = errorHtml(e.message);
@@ -521,6 +781,7 @@ function renderRecipes(d) {
 function recipeCard(r, id, isHistorical) {
   const pillClass = isHistorical ? 'historical' : 'modern';
   const pillText  = isHistorical ? (r.era || 'Historical') : (r.style || 'Modern');
+  recipeStore[`rc-${id}`] = r;
 
   return `
     <div class="recipe-card" id="rc-${id}">
@@ -531,6 +792,7 @@ function recipeCard(r, id, isHistorical) {
           <p class="recipe-region">${isHistorical && r.region ? '📍 ' + escHtml(r.region) : ''}</p>
         </div>
         ${isHistorical && r.period ? `<span class="recipe-period-badge">${escHtml(r.period)}</span>` : ''}
+        <button class="btn-save-recipe" onclick="saveRecipeFav(event, 'rc-${id}')" title="Save this recipe to favorites">★</button>
         <span class="recipe-toggle">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M6 9l6 6 6-6"/>
@@ -650,9 +912,48 @@ async function post(url, body) {
     body:    JSON.stringify(body),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+  if (!res.ok) throw new Error(friendlyError(res, data));
   return data;
 }
+
+async function getJson(url) {
+  const res  = await fetch(url);
+  const data = await res.json();
+  if (!res.ok) throw new Error(friendlyError(res, data));
+  return data;
+}
+
+async function del(url) {
+  const res  = await fetch(url, { method: 'DELETE' });
+  const data = await res.json();
+  if (!res.ok) throw new Error(friendlyError(res, data));
+  return data;
+}
+
+function friendlyError(res, data) {
+  if (res.status === 429) return data.detail || 'Slow down a little — too many requests. Try again in a minute.';
+  if (res.status === 401 && !data.detail) return 'Please log in first.';
+  return data.detail || `HTTP ${res.status}`;
+}
+
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+function timeAgo(unixSeconds) {
+  const s = Math.max(1, Math.floor(Date.now() / 1000 - unixSeconds));
+  if (s < 60)     return 'just now';
+  if (s < 3600)   return `${Math.floor(s / 60)} min ago`;
+  if (s < 86400)  return `${Math.floor(s / 3600)} hr ago`;
+  if (s < 604800) return `${Math.floor(s / 86400)} d ago`;
+  return new Date(unixSeconds * 1000).toLocaleDateString();
+}
+
+initAccount();
 
 function escHtml(str) {
   return String(str)

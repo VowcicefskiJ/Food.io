@@ -1,3 +1,7 @@
+# Local database (user accounts, history, favorites)
+foodio.db
+*.db
+
 # Python
 .venv/
 __pycache__/
