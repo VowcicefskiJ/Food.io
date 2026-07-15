@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException, Request, Depends, Header
-from fastapi.responses import PlainTextResponse, FileResponse, JSONResponse
+from fastapi.responses import PlainTextResponse, FileResponse, JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from pydantic import BaseModel, Field
@@ -491,9 +491,30 @@ def health_check():
     return {"status": "ok"}
 
 
+def _asset_version() -> str:
+    """A version string that changes whenever the CSS/JS/HTML change, so the
+    browser fetches the new files instead of stale cached ones."""
+    try:
+        newest = max(
+            os.path.getmtime("static/index.html"),
+            os.path.getmtime("static/style.css"),
+            os.path.getmtime("static/app.js"),
+        )
+        return str(int(newest))
+    except OSError:
+        return "1"
+
+
 @app.get("/")
 def serve_ui():
-    return FileResponse("static/index.html")
+    # Stamp a cache-busting version onto the CSS/JS links and tell the browser
+    # to always revalidate the page, so updates show up on a normal refresh.
+    ver = _asset_version()
+    with open("static/index.html", encoding="utf-8") as f:
+        html = f.read()
+    html = html.replace("/static/style.css", f"/static/style.css?v={ver}")
+    html = html.replace("/static/app.js", f"/static/app.js?v={ver}")
+    return HTMLResponse(html, headers={"Cache-Control": "no-cache"})
 
 
 @app.post("/meals", response_model=MealResponse)
