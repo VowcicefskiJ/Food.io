@@ -293,55 +293,55 @@ function renderOverview(d) {
   const bullets = (items) => `<ul class="overview-bullets">${items.map(x => `<li>${escHtml(x)}</li>`).join('')}</ul>`;
 
   document.getElementById('overviewContent').innerHTML = `
-    <div class="overview-grid">
+    <div class="bento">
 
-      <div class="info-card hero-card full-width">
+      <div class="info-card hero-card span-8">
         <div class="card-label">About</div>
         <div class="card-body">${escHtml(d.description || '')}</div>
         ${chips.length ? `<div class="fact-chips">${chips.map(f => `<span class="fact-chip">${escHtml(f)}</span>`).join('')}</div>` : ''}
       </div>
 
-      <div class="info-card">
+      <div class="info-card span-4">
         <div class="card-icon">🌍</div>
         <div class="card-label">Origin &amp; History</div>
         <div class="card-big">${escHtml(d.origin || '—')}</div>
         ${d.history ? `<div class="card-body">${escHtml(d.history)}</div>` : ''}
       </div>
 
-      <div class="info-card">
+      <div class="info-card span-4">
         <div class="card-icon">🥦</div>
         <div class="card-label">Nutrition</div>
         ${nutri.length ? bullets(nutri) : '<div class="card-body">—</div>'}
       </div>
 
       ${uses.length ? `
-      <div class="info-card">
+      <div class="info-card span-4">
         <div class="card-icon">🍽</div>
         <div class="card-label">Common Uses</div>
         ${bullets(uses)}
       </div>` : ''}
 
-      <div class="info-card">
+      <div class="info-card span-4">
         <div class="card-icon">🗓</div>
         <div class="card-label">Best Season &amp; Buying</div>
         <div class="card-big">${escHtml(d.best_season || '—')}</div>
         ${buying.length ? bullets(buying) : ''}
       </div>
 
-      <div class="info-card">
+      <div class="info-card span-6">
         <div class="card-icon">📦</div>
         <div class="card-label">Storage</div>
         ${storage.length ? bullets(storage) : '<div class="card-body">—</div>'}
       </div>
 
       ${d.fun_fact ? `
-      <div class="info-card fun-fact-card full-width">
+      <div class="info-card fun-fact-card span-6">
         <div class="card-label">Did You Know?</div>
         <div class="card-body">${escHtml(d.fun_fact)}</div>
       </div>` : ''}
 
     </div>
-  
+
     ${sourcesFooter(d.sources)}
   `;
 }
@@ -367,45 +367,47 @@ function renderCooking(d) {
   const dishes   = asArr(d.classic_dishes).map(x => `<li>${escHtml(x)}</li>`).join('');
 
   document.getElementById('cookingContent').innerHTML = `
-    ${d.common_uses ? `
-    <div class="insight-strip">
-      <div class="card-label">What It's Used For</div>
-      <div class="card-body">${escHtml(d.common_uses)}</div>
-    </div>` : ''}
+    <div class="bento">
+      ${d.common_uses ? `
+      <div class="insight-strip span-4">
+        <div class="card-label">What It's Used For</div>
+        <div class="card-body">${escHtml(d.common_uses)}</div>
+      </div>` : ''}
 
-    ${dishes ? `
-    <div class="insight-strip">
-      <div class="card-label">Classic Dishes to Make With It</div>
-      <ul class="bullet-list">${dishes}</ul>
-    </div>` : ''}
+      ${dishes ? `
+      <div class="insight-strip span-4">
+        <div class="card-label">Classic Dishes to Make With It</div>
+        <ul class="bullet-list">${dishes}</ul>
+      </div>` : ''}
 
-    ${d.preparation ? `
-    <div class="insight-strip">
-      <div class="card-label">Preparation</div>
-      <div class="card-body">${escHtml(d.preparation)}</div>
-    </div>` : ''}
+      ${d.preparation ? `
+      <div class="insight-strip span-4">
+        <div class="card-label">Preparation</div>
+        <div class="card-body">${escHtml(d.preparation)}</div>
+      </div>` : ''}
 
-    <div class="era-divider"><span class="era-divider-title">Primary Cooking Methods</span><span class="era-divider-line"></span></div>
-    <div class="methods-list">${methods}</div>
+      <div class="era-divider span-12"><span class="era-divider-title">Primary Cooking Methods</span><span class="era-divider-line"></span></div>
+      <div class="methods-list span-12">${methods}</div>
 
-    ${mistakes ? `
-    <div class="insight-strip warn">
-      <div class="card-label">Common Mistakes to Avoid</div>
-      <ul class="bullet-list">${mistakes}</ul>
-    </div>` : ''}
+      ${mistakes ? `
+      <div class="insight-strip warn span-6">
+        <div class="card-label">Common Mistakes to Avoid</div>
+        <ul class="bullet-list">${mistakes}</ul>
+      </div>` : ''}
 
-    ${d.flavor_pairings ? `
-    <div class="insight-strip">
-      <div class="card-label">Flavor Pairings</div>
-      <div class="card-body">${escHtml(d.flavor_pairings)}</div>
-    </div>` : ''}
+      ${d.flavor_pairings ? `
+      <div class="insight-strip span-6">
+        <div class="card-label">Flavor Pairings</div>
+        <div class="card-body">${escHtml(d.flavor_pairings)}</div>
+      </div>` : ''}
 
-    ${d.pro_tips ? `
-    <div class="insight-strip">
-      <div class="card-label">Pro Tips</div>
-      <div class="card-body">${escHtml(d.pro_tips)}</div>
-    </div>` : ''}
-  
+      ${d.pro_tips ? `
+      <div class="insight-strip span-12">
+        <div class="card-label">Pro Tips</div>
+        <div class="card-body">${escHtml(d.pro_tips)}</div>
+      </div>` : ''}
+    </div>
+
     ${sourcesFooter(d.sources)}
   `;
 }
@@ -433,57 +435,56 @@ function renderAuthenticity(d) {
   const reds    = asArr(d.red_flags).map(r => `<li>${escHtml(r)}</li>`).join('');
 
   document.getElementById('authenticityContent').innerHTML = `
-    <div class="risk-banner ${riskClass}">
-      <div class="risk-label">Fraud Risk</div>
-      <div class="risk-value">${escHtml(d.fraud_risk || '—')}</div>
-      <div class="risk-overview">${escHtml(d.fraud_overview || '')}</div>
-    </div>
+    <div class="bento">
+      <div class="risk-banner ${riskClass} span-12">
+        <div class="risk-label">Fraud Risk</div>
+        <div class="risk-value">${escHtml(d.fraud_risk || '—')}</div>
+        <div class="risk-overview">${escHtml(d.fraud_overview || '')}</div>
+      </div>
 
-    ${(d.gmo_status || d.organic_guidance) ? `
-    <div class="overview-grid" style="margin-bottom:28px">
       ${d.gmo_status ? `
-      <div class="info-card">
+      <div class="info-card span-6">
         <div class="card-icon">🧬</div>
         <div class="card-label">GMO Status</div>
         <div class="card-big">${escHtml(d.gmo_status)}</div>
         ${d.gmo_details ? `<div class="card-body">${escHtml(d.gmo_details)}</div>` : ''}
       </div>` : ''}
       ${d.organic_guidance ? `
-      <div class="info-card">
+      <div class="info-card span-6">
         <div class="card-icon">🌱</div>
         <div class="card-label">Buying Organic</div>
         <div class="card-body">${escHtml(d.organic_guidance)}</div>
       </div>` : ''}
-    </div>` : ''}
 
-    ${fakes ? `
-    <div class="era-divider"><span class="era-divider-title">Common Fakes &amp; Adulterations</span><span class="era-divider-line"></span></div>
-    <div class="fakes-grid">${fakes}</div>` : ''}
+      ${fakes ? `
+      <div class="era-divider span-12"><span class="era-divider-title">Common Fakes &amp; Adulterations</span><span class="era-divider-line"></span></div>
+      <div class="fakes-grid span-12">${fakes}</div>` : ''}
 
-    ${checks ? `
-    <div class="insight-strip">
-      <div class="card-label">Authenticity Checks You Can Do</div>
-      <ul class="bullet-list">${checks}</ul>
-    </div>` : ''}
+      ${checks ? `
+      <div class="insight-strip span-6">
+        <div class="card-label">Authenticity Checks You Can Do</div>
+        <ul class="bullet-list">${checks}</ul>
+      </div>` : ''}
 
-    ${d.trusted_certifications ? `
-    <div class="insight-strip">
-      <div class="card-label">Trusted Certifications</div>
-      <div class="card-body">${escHtml(d.trusted_certifications)}</div>
-    </div>` : ''}
+      ${d.trusted_certifications ? `
+      <div class="insight-strip span-6">
+        <div class="card-label">Trusted Certifications</div>
+        <div class="card-body">${escHtml(d.trusted_certifications)}</div>
+      </div>` : ''}
 
-    ${d.where_to_buy_authentic ? `
-    <div class="insight-strip">
-      <div class="card-label">Where to Buy the Real Thing</div>
-      <div class="card-body">${escHtml(d.where_to_buy_authentic)}</div>
-    </div>` : ''}
+      ${d.where_to_buy_authentic ? `
+      <div class="insight-strip span-6">
+        <div class="card-label">Where to Buy the Real Thing</div>
+        <div class="card-body">${escHtml(d.where_to_buy_authentic)}</div>
+      </div>` : ''}
 
-    ${reds ? `
-    <div class="insight-strip warn">
-      <div class="card-label">Red Flags</div>
-      <ul class="bullet-list">${reds}</ul>
-    </div>` : ''}
-  
+      ${reds ? `
+      <div class="insight-strip warn span-6">
+        <div class="card-label">Red Flags</div>
+        <ul class="bullet-list">${reds}</ul>
+      </div>` : ''}
+    </div>
+
     ${sourcesFooter(d.sources)}
   `;
 }
@@ -498,62 +499,62 @@ function renderCultivation(d) {
   `).join('');
 
   document.getElementById('growContent').innerHTML = `
-    <div class="grow-summary">
-      <div class="grow-stat">
-        <span class="grow-stat-label">Growability</span>
-        <span class="grow-stat-value">${escHtml(d.growability || '—')}</span>
+    <div class="bento">
+      <div class="grow-summary span-12">
+        <div class="grow-stat">
+          <span class="grow-stat-label">Growability</span>
+          <span class="grow-stat-value">${escHtml(d.growability || '—')}</span>
+        </div>
+        <div class="grow-stat">
+          <span class="grow-stat-label">Time to Harvest</span>
+          <span class="grow-stat-value">${escHtml(d.time_to_harvest || '—')}</span>
+        </div>
+        <div class="grow-stat">
+          <span class="grow-stat-label">Container Friendly</span>
+          <span class="grow-stat-value">${escHtml(d.container_friendly || '—')}</span>
+        </div>
       </div>
-      <div class="grow-stat">
-        <span class="grow-stat-label">Time to Harvest</span>
-        <span class="grow-stat-value">${escHtml(d.time_to_harvest || '—')}</span>
-      </div>
-      <div class="grow-stat">
-        <span class="grow-stat-label">Container Friendly</span>
-        <span class="grow-stat-value">${escHtml(d.container_friendly || '—')}</span>
-      </div>
-    </div>
 
-    <div class="overview-grid">
-      <div class="info-card">
+      <div class="info-card span-3">
         <div class="card-icon">🌡</div>
         <div class="card-label">Climate</div>
         <div class="card-body">${escHtml(d.climate || '')}</div>
       </div>
-      <div class="info-card">
+      <div class="info-card span-3">
         <div class="card-icon">🪴</div>
         <div class="card-label">Soil</div>
         <div class="card-body">${escHtml(d.soil || '')}</div>
       </div>
-      <div class="info-card">
+      <div class="info-card span-3">
         <div class="card-icon">☀️</div>
         <div class="card-label">Sun &amp; Water</div>
         <div class="card-body">${escHtml(d.sunlight_water || '')}</div>
       </div>
-      <div class="info-card">
+      <div class="info-card span-3">
         <div class="card-icon">🌱</div>
         <div class="card-label">Propagation</div>
         <div class="card-body">${escHtml(d.propagation || '')}</div>
       </div>
+
+      ${steps ? `
+      <div class="insight-strip span-6">
+        <div class="card-label">Growing Steps</div>
+        <ol class="step-list">${steps}</ol>
+      </div>` : ''}
+
+      ${d.harvest_signs ? `
+      <div class="insight-strip span-6">
+        <div class="card-label">When to Harvest</div>
+        <div class="card-body">${escHtml(d.harvest_signs)}</div>
+      </div>` : ''}
+
+      ${d.common_pests_diseases ? `
+      <div class="insight-strip warn span-12">
+        <div class="card-label">Pests &amp; Diseases</div>
+        <div class="card-body">${escHtml(d.common_pests_diseases)}</div>
+      </div>` : ''}
     </div>
 
-    ${steps ? `
-    <div class="insight-strip">
-      <div class="card-label">Growing Steps</div>
-      <ol class="step-list">${steps}</ol>
-    </div>` : ''}
-
-    ${d.harvest_signs ? `
-    <div class="insight-strip">
-      <div class="card-label">When to Harvest</div>
-      <div class="card-body">${escHtml(d.harvest_signs)}</div>
-    </div>` : ''}
-
-    ${d.common_pests_diseases ? `
-    <div class="insight-strip warn">
-      <div class="card-label">Pests &amp; Diseases</div>
-      <div class="card-body">${escHtml(d.common_pests_diseases)}</div>
-    </div>` : ''}
-  
     ${sourcesFooter(d.sources)}
   `;
 }
@@ -578,52 +579,54 @@ function renderPreservation(d) {
   const dos = asArr(d.storage_dos_and_donts).map(s => `<li>${escHtml(s)}</li>`).join('');
 
   document.getElementById('preserveContent').innerHTML = `
-    <div class="shelf-life-grid">
-      <div class="shelf-card">
-        <span class="shelf-icon">🥫</span>
-        <div class="shelf-label">Pantry</div>
-        <div class="shelf-value">${escHtml(sl.pantry || 'N/A')}</div>
+    <div class="bento">
+      <div class="shelf-life-grid span-12">
+        <div class="shelf-card">
+          <span class="shelf-icon">🥫</span>
+          <div class="shelf-label">Pantry</div>
+          <div class="shelf-value">${escHtml(sl.pantry || 'N/A')}</div>
+        </div>
+        <div class="shelf-card">
+          <span class="shelf-icon">❄️</span>
+          <div class="shelf-label">Refrigerator</div>
+          <div class="shelf-value">${escHtml(sl.refrigerator || 'N/A')}</div>
+        </div>
+        <div class="shelf-card">
+          <span class="shelf-icon">🧊</span>
+          <div class="shelf-label">Freezer</div>
+          <div class="shelf-value">${escHtml(sl.freezer || 'N/A')}</div>
+        </div>
       </div>
-      <div class="shelf-card">
-        <span class="shelf-icon">❄️</span>
-        <div class="shelf-label">Refrigerator</div>
-        <div class="shelf-value">${escHtml(sl.refrigerator || 'N/A')}</div>
-      </div>
-      <div class="shelf-card">
-        <span class="shelf-icon">🧊</span>
-        <div class="shelf-label">Freezer</div>
-        <div class="shelf-value">${escHtml(sl.freezer || 'N/A')}</div>
-      </div>
+
+      ${d.best_storage ? `
+      <div class="insight-strip span-6">
+        <div class="card-label">Best Way to Store</div>
+        <div class="card-body">${escHtml(d.best_storage)}</div>
+      </div>` : ''}
+
+      ${dos ? `
+      <div class="insight-strip span-6">
+        <div class="card-label">Storage Do's &amp; Don'ts</div>
+        <ul class="bullet-list">${dos}</ul>
+      </div>` : ''}
+
+      ${methods ? `
+      <div class="era-divider span-12"><span class="era-divider-title">Preservation Methods</span><span class="era-divider-line"></span></div>
+      <div class="methods-list span-12">${methods}</div>` : ''}
+
+      ${d.spoilage_signs ? `
+      <div class="insight-strip warn span-6">
+        <div class="card-label">Signs It's Gone Bad</div>
+        <div class="card-body">${escHtml(d.spoilage_signs)}</div>
+      </div>` : ''}
+
+      ${d.freshness_revival && d.freshness_revival.toLowerCase() !== 'n/a' ? `
+      <div class="insight-strip span-6">
+        <div class="card-label">Reviving Freshness</div>
+        <div class="card-body">${escHtml(d.freshness_revival)}</div>
+      </div>` : ''}
     </div>
 
-    ${d.best_storage ? `
-    <div class="insight-strip">
-      <div class="card-label">Best Way to Store</div>
-      <div class="card-body">${escHtml(d.best_storage)}</div>
-    </div>` : ''}
-
-    ${dos ? `
-    <div class="insight-strip">
-      <div class="card-label">Storage Do's &amp; Don'ts</div>
-      <ul class="bullet-list">${dos}</ul>
-    </div>` : ''}
-
-    ${methods ? `
-    <div class="era-divider"><span class="era-divider-title">Preservation Methods</span><span class="era-divider-line"></span></div>
-    <div class="methods-list">${methods}</div>` : ''}
-
-    ${d.spoilage_signs ? `
-    <div class="insight-strip warn">
-      <div class="card-label">Signs It's Gone Bad</div>
-      <div class="card-body">${escHtml(d.spoilage_signs)}</div>
-    </div>` : ''}
-
-    ${d.freshness_revival && d.freshness_revival.toLowerCase() !== 'n/a' ? `
-    <div class="insight-strip">
-      <div class="card-label">Reviving Freshness</div>
-      <div class="card-body">${escHtml(d.freshness_revival)}</div>
-    </div>` : ''}
-  
     ${sourcesFooter(d.sources)}
   `;
 }
@@ -686,24 +689,26 @@ function renderMarkets(d) {
   `).join('');
 
   document.getElementById('marketsContent').innerHTML = `
-    ${locPrompt}
-    <div class="markets-grid">${places}</div>
-    ${d.seasonal_advice ? `
-    <div class="insight-strip">
-      <div class="card-label">Seasonal Advice</div>
-      <div class="card-body">${escHtml(d.seasonal_advice)}</div>
-    </div>` : ''}
-    ${d.quality_indicators ? `
-    <div class="insight-strip">
-      <div class="card-label">Quality Indicators</div>
-      <div class="card-body">${escHtml(d.quality_indicators)}</div>
-    </div>` : ''}
-    ${d.sourcing_tip ? `
-    <div class="insight-strip">
-      <div class="card-label">Insider Tip</div>
-      <div class="card-body">${escHtml(d.sourcing_tip)}</div>
-    </div>` : ''}
-  
+    <div class="bento">
+      <div class="span-12">${locPrompt}</div>
+      <div class="markets-grid span-12">${places}</div>
+      ${d.seasonal_advice ? `
+      <div class="insight-strip span-4">
+        <div class="card-label">Seasonal Advice</div>
+        <div class="card-body">${escHtml(d.seasonal_advice)}</div>
+      </div>` : ''}
+      ${d.quality_indicators ? `
+      <div class="insight-strip span-4">
+        <div class="card-label">Quality Indicators</div>
+        <div class="card-body">${escHtml(d.quality_indicators)}</div>
+      </div>` : ''}
+      ${d.sourcing_tip ? `
+      <div class="insight-strip span-4">
+        <div class="card-label">Insider Tip</div>
+        <div class="card-body">${escHtml(d.sourcing_tip)}</div>
+      </div>` : ''}
+    </div>
+
     ${sourcesFooter(d.sources)}
   `;
 }
@@ -717,18 +722,20 @@ function renderRecipes(d) {
   const modern     = asArr(d.modern_recipes).map((r, i) => recipeCard(r, `m${i}`, false)).join('');
 
   document.getElementById('recipesContent').innerHTML = `
-    <div class="era-divider">
-      <span class="era-divider-title">Through History</span>
-      <span class="era-divider-line"></span>
-    </div>
-    <div class="recipes-list">${historical}</div>
+    <div class="bento">
+      <div class="era-divider span-12">
+        <span class="era-divider-title">Through History</span>
+        <span class="era-divider-line"></span>
+      </div>
+      <div class="recipes-list span-12">${historical}</div>
 
-    <div class="era-divider">
-      <span class="era-divider-title">Modern Interpretations</span>
-      <span class="era-divider-line"></span>
+      <div class="era-divider span-12">
+        <span class="era-divider-title">Modern Interpretations</span>
+        <span class="era-divider-line"></span>
+      </div>
+      <div class="recipes-list span-12">${modern}</div>
     </div>
-    <div class="recipes-list">${modern}</div>
-  
+
     ${sourcesFooter(d.sources)}
   `;
 }

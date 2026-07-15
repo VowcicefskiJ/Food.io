@@ -2517,3 +2517,43 @@ body { background: var(--bg); }
 .saves-item { background: var(--bg); border-color: var(--border); }
 .saves-item:hover { border-color: var(--border-2); }
 .toast-note { background: var(--surface-2); border: 1px solid var(--border-2); color: var(--text); }
+
+/* =============================================================================
+   DASHBOARD BENTO — arrange each tab as a screen-filling grid (less scrolling)
+   ============================================================================= */
+.dashboard .bento { display: grid; grid-template-columns: repeat(12, 1fr); gap: 14px; align-items: start; }
+.dashboard .bento > * { margin: 0 !important; }
+.dashboard .span-3  { grid-column: span 3; }
+.dashboard .span-4  { grid-column: span 4; }
+.dashboard .span-5  { grid-column: span 5; }
+.dashboard .span-6  { grid-column: span 6; }
+.dashboard .span-7  { grid-column: span 7; }
+.dashboard .span-8  { grid-column: span 8; }
+.dashboard .span-9  { grid-column: span 9; }
+.dashboard .span-12 { grid-column: 1 / -1; }
+
+/* Sub-grids inside a bento cell shouldn't add their own bottom margin */
+.dashboard .bento .markets-grid,
+.dashboard .bento .fakes-grid,
+.dashboard .bento .methods-list,
+.dashboard .bento .grow-summary,
+.dashboard .bento .shelf-life-grid,
+.dashboard .bento .recipes-list { margin-bottom: 0 !important; }
+
+/* Era dividers as thin full-width section markers inside bento */
+.dashboard .bento .era-divider { margin: 2px 0 !important; }
+
+/* Compact the era headings when used as bento row labels */
+.dashboard .bento .recipes-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+
+@media (max-width: 1120px) {
+  .dashboard .span-3, .dashboard .span-4, .dashboard .span-5,
+  .dashboard .span-6, .dashboard .span-7, .dashboard .span-8, .dashboard .span-9 { grid-column: span 6; }
+}
+@media (max-width: 760px) {
+  .dashboard .bento > * { grid-column: 1 / -1 !important; }
+}
+
+/* Compact overview hero photo so the tab fits a screen */
+.dashboard .ingredient-photo { max-height: 150px; }
+.dashboard .dash-content { padding-top: 18px; }
