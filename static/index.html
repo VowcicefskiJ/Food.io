@@ -23,10 +23,8 @@
       Food.io
     </a>
     <nav class="nav">
-      <a href="#explore" class="nav-link">Explore</a>
-      <a href="#features" class="nav-link">What You Get</a>
-      <a href="#how-it-works" class="nav-link">How It Works</a>
-      <a href="#meal-planner" class="nav-link">Meal Planner</a>
+      <a href="#explore" class="nav-link" onclick="focusSearch(event)">Explore</a>
+      <button class="nav-link nav-btn" onclick="openPlanner()">Meal Planner</button>
       <button class="nav-link nav-btn" id="savesNavBtn" style="display:none" onclick="openSaves()">My Saves</button>
       <button class="btn-auth" id="authBtn" onclick="openAuth()">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:-2px"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>
@@ -43,81 +41,64 @@
 
 <main>
 
-  <!-- ========== HERO ========== -->
-  <section class="hero" id="explore">
+  <!-- ========== LANDING (single view) ========== -->
+  <section class="landing" id="explore">
     <div class="hero-bg-pattern"></div>
     <div class="hero-glow"></div>
-    <div class="container hero-inner">
-      <div class="hero-content">
-        <p class="hero-eyebrow">
-          <span class="eyebrow-dot"></span>
-          AI-powered · Live web search · No database
-        </p>
-        <h1 class="hero-title">Every Ingredient<br/>Has a <em>Story.</em></h1>
-        <p class="hero-subtitle">Search anything edible — get its history, how to cook it right, how to spot fakes, where to buy it near you, how to grow it, and recipes spanning thousands of years.</p>
+    <div class="container landing-inner">
 
-        <div class="hero-stats">
-          <div class="stat"><span class="stat-num">7</span><span class="stat-label">Deep-Dive Tabs<br/>per Ingredient</span></div>
-          <div class="stat-divider"></div>
-          <div class="stat"><span class="stat-num">1000s</span><span class="stat-label">of Years of<br/>Recipe History</span></div>
-          <div class="stat-divider"></div>
-          <div class="stat"><span class="stat-num">Local</span><span class="stat-label">Sourcing Tips<br/>for Your City</span></div>
+      <div class="landing-left">
+        <p class="hero-eyebrow"><span class="eyebrow-dot"></span> AI-powered · Live web search · No database</p>
+        <h1 class="landing-title">Every Ingredient<br/>Has a <em>Story.</em></h1>
+        <p class="landing-sub">One search gives you the whole picture on any ingredient — everything below, researched live. No endless scrolling.</p>
+
+        <div class="cap-grid">
+          <div class="cap"><span class="cap-ico">🌿</span><div class="cap-t"><b>Overview</b><span>History, origin &amp; nutrition</span></div></div>
+          <div class="cap"><span class="cap-ico">🍳</span><div class="cap-t"><b>Cook It Right</b><span>Methods, times &amp; mistakes</span></div></div>
+          <div class="cap"><span class="cap-ico">🕵️</span><div class="cap-t"><b>Real or Fake</b><span>Spot fakes &amp; fraud</span></div></div>
+          <div class="cap"><span class="cap-ico">📍</span><div class="cap-t"><b>Where to Find</b><span>Real markets near you</span></div></div>
+          <div class="cap"><span class="cap-ico">🌱</span><div class="cap-t"><b>Grow It</b><span>Grow it yourself</span></div></div>
+          <div class="cap"><span class="cap-ico">🧊</span><div class="cap-t"><b>Preserve &amp; Store</b><span>Shelf life &amp; methods</span></div></div>
+          <div class="cap"><span class="cap-ico">📜</span><div class="cap-t"><b>Recipes</b><span>Ancient to modern</span></div></div>
+          <div class="cap how-cap"><span class="cap-ico">⚡</span><div class="cap-t"><b>How it works</b><span>Search → AI research → 7 tabs</span></div></div>
         </div>
       </div>
 
-      <div class="search-card" id="search-card">
-        <div class="search-card-header">
-          <h2 class="search-card-title">Find an Ingredient</h2>
-          <p class="search-card-sub">History, sourcing, fraud checks, recipes &amp; more</p>
-        </div>
-        <div class="search-fields">
-          <div class="field-group">
-            <label class="field-label" for="ingredientInput">Ingredient</label>
-            <input
-              type="text"
-              id="ingredientInput"
-              class="field-input"
-              placeholder="e.g. turmeric, miso, saffron, farro..."
-              autocomplete="off"
-              onkeydown="if(event.key==='Enter') searchIngredient()"
-            />
+      <div class="landing-right">
+        <div class="search-card" id="search-card">
+          <div class="search-card-header">
+            <h2 class="search-card-title">Find an Ingredient</h2>
+            <p class="search-card-sub">Seven deep-dive tabs, researched live</p>
           </div>
-          <div class="field-group">
-            <label class="field-label" for="locationInput">
-              Your Location <span class="label-optional">(optional — for sourcing tips)</span>
-            </label>
-            <input
-              type="text"
-              id="locationInput"
-              class="field-input"
-              placeholder="City or neighborhood..."
-              autocomplete="off"
-              onkeydown="if(event.key==='Enter') searchIngredient()"
-            />
+          <div class="search-fields">
+            <div class="field-group">
+              <label class="field-label" for="ingredientInput">Ingredient</label>
+              <input type="text" id="ingredientInput" class="field-input" placeholder="e.g. turmeric, miso, saffron..." autocomplete="off" onkeydown="if(event.key==='Enter') searchIngredient()" />
+            </div>
+            <div class="field-group">
+              <label class="field-label" for="locationInput">Your Location <span class="label-optional">(optional)</span></label>
+              <input type="text" id="locationInput" class="field-input" placeholder="City or neighborhood..." autocomplete="off" onkeydown="if(event.key==='Enter') searchIngredient()" />
+            </div>
           </div>
-        </div>
-        <button class="btn-primary" onclick="searchIngredient()" id="searchBtn">
-          <span id="searchBtnLabel">Explore Ingredient</span>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M5 12h14M12 5l7 7-7 7"/>
-          </svg>
-        </button>
-        <div class="quick-tries">
-          <span class="quick-tries-label">Popular:</span>
-          <button class="chip" onclick="quickSearch('turmeric')">Turmeric</button>
-          <button class="chip" onclick="quickSearch('miso')">Miso</button>
-          <button class="chip" onclick="quickSearch('saffron')">Saffron</button>
-          <button class="chip" onclick="quickSearch('ginger')">Ginger</button>
-          <button class="chip" onclick="quickSearch('farro')">Farro</button>
-          <button class="chip" onclick="quickSearch('sumac')">Sumac</button>
-          <button class="chip" onclick="quickSearch('cardamom')">Cardamom</button>
-          <button class="chip" onclick="quickSearch('preserved lemon')">Preserved Lemon</button>
-          <button class="chip" onclick="quickSearch('tamarind')">Tamarind</button>
-          <button class="chip" onclick="quickSearch('shiso')">Shiso</button>
-          <button class="chip" onclick="quickSearch('za&#39;atar')">Za'atar</button>
-          <button class="chip" onclick="quickSearch('sichuan pepper')">Sichuan Pepper</button>
+          <button class="btn-primary" onclick="searchIngredient()" id="searchBtn">
+            <span id="searchBtnLabel">Explore Ingredient</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </button>
+          <div class="quick-tries">
+            <span class="quick-tries-label">Popular:</span>
+            <button class="chip" onclick="quickSearch('turmeric')">Turmeric</button>
+            <button class="chip" onclick="quickSearch('saffron')">Saffron</button>
+            <button class="chip" onclick="quickSearch('ginger')">Ginger</button>
+            <button class="chip" onclick="quickSearch('miso')">Miso</button>
+            <button class="chip" onclick="quickSearch('sumac')">Sumac</button>
+            <button class="chip" onclick="quickSearch('cardamom')">Cardamom</button>
+          </div>
+          <button class="planner-open" onclick="openPlanner()">
+            🍳 Or plan a meal from what you already have
+          </button>
         </div>
       </div>
+
     </div>
   </section>
 
@@ -219,92 +200,12 @@
     </div>
   </section>
 
-  <!-- ========== FEATURES ========== -->
-  <section class="features-section" id="features">
-    <div class="container">
-      <div class="section-header">
-        <p class="section-eyebrow">One Search, Seven Answers</p>
-        <h2 class="section-title">What You Get for Every Ingredient</h2>
-        <p class="section-subtitle">Each tab is researched live by AI with real web search — nothing is canned or pre-written.</p>
-      </div>
-
-      <div class="features-grid">
-        <button class="feature-card" onclick="focusSearch(event)">
-          <span class="feature-icon">🌿</span>
-          <h3>Overview</h3>
-          <p>Photo, origin, history, nutrition, best season to buy and a fun fact.</p>
-        </button>
-        <button class="feature-card" onclick="focusSearch(event)">
-          <span class="feature-icon">🍳</span>
-          <h3>Cook It Right</h3>
-          <p>The best methods with times &amp; temps, doneness cues and mistakes to avoid.</p>
-        </button>
-        <button class="feature-card" onclick="focusSearch(event)">
-          <span class="feature-icon">🕵️</span>
-          <h3>Real or Fake</h3>
-          <p>Fraud risk, common fakes and adulterations — and how to spot the real thing.</p>
-        </button>
-        <button class="feature-card" onclick="focusSearch(event)">
-          <span class="feature-icon">📍</span>
-          <h3>Where to Find</h3>
-          <p>Quality local sources near you: farmers markets, specialty shops and more.</p>
-        </button>
-        <button class="feature-card" onclick="focusSearch(event)">
-          <span class="feature-icon">🌱</span>
-          <h3>Grow It</h3>
-          <p>Climate, soil, propagation and step-by-step growing — even in containers.</p>
-        </button>
-        <button class="feature-card" onclick="focusSearch(event)">
-          <span class="feature-icon">🧊</span>
-          <h3>Preserve &amp; Store</h3>
-          <p>Realistic shelf lives for pantry, fridge and freezer, plus preservation methods.</p>
-        </button>
-        <button class="feature-card feature-card-wide" onclick="focusSearch(event)">
-          <span class="feature-icon">📜</span>
-          <h3>Recipes Through Time</h3>
-          <p>Authentic historical recipes with their context, next to modern interpretations.</p>
-        </button>
-      </div>
-    </div>
-  </section>
-
-  <!-- ========== HOW IT WORKS ========== -->
-  <section class="how-section" id="how-it-works">
-    <div class="container">
-      <div class="section-header">
-        <p class="section-eyebrow">Simple by Design</p>
-        <h2 class="section-title">How It Works</h2>
-      </div>
-      <div class="how-grid">
-        <div class="how-step">
-          <span class="how-num">1</span>
-          <h3>Search anything edible</h3>
-          <p>Type an ingredient — common or obscure — and optionally your city for local sourcing tips.</p>
-        </div>
-        <div class="how-arrow" aria-hidden="true">→</div>
-        <div class="how-step">
-          <span class="how-num">2</span>
-          <h3>AI researches it live</h3>
-          <p>Seven parallel AI calls with real web search dig up history, fraud data, growing guides and recipes.</p>
-        </div>
-        <div class="how-arrow" aria-hidden="true">→</div>
-        <div class="how-step">
-          <span class="how-num">3</span>
-          <h3>Explore &amp; cook</h3>
-          <p>Click through the tabs, plan a meal from what's in your kitchen, and cook with confidence.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ========== MEAL PLANNER ========== -->
-  <section class="planner-section" id="meal-planner">
-    <div class="container">
-      <div class="section-header">
-        <p class="section-eyebrow">Traditional Cooking</p>
-        <h2 class="section-title">Meal Planner</h2>
-        <p class="section-subtitle">Tell us what you have — we'll suggest authentic dishes from culinary traditions around the world.</p>
-      </div>
+  <!-- ========== MEAL PLANNER (overlay) ========== -->
+  <div class="overlay" id="plannerOverlay" style="display:none" onclick="if(event.target===this) closePlanner()">
+    <div class="modal modal-wide planner-modal">
+      <button class="modal-x" onclick="closePlanner()" aria-label="Close">×</button>
+      <h3 class="modal-title">Meal Planner</h3>
+      <p class="modal-sub">Tell us what you have — we'll suggest authentic dishes from culinary traditions around the world.</p>
 
       <div class="planner-card">
         <div class="field-group" style="margin-bottom:20px">
@@ -354,53 +255,9 @@
 
       <div id="mealResults"></div>
     </div>
-  </section>
-
-  <!-- ========== MOBILE APP ========== -->
-  <section class="mobile-section">
-    <div class="container mobile-inner">
-      <div class="mobile-copy">
-        <p class="section-eyebrow light">Take It With You</p>
-        <h2 class="mobile-title">Also in Your Pocket</h2>
-        <p class="mobile-text">Food.io ships with a native mobile app for <strong>iOS and Android</strong> — the same seven-tab ingredient explorer and meal planner, plus ingredient photo lookup, built with React&nbsp;Native.</p>
-        <p class="mobile-text mobile-note">Find it in the <code>mobile/</code> folder of the project — see the README for one-command setup with Expo.</p>
-      </div>
-      <div class="mobile-mock" aria-hidden="true">
-        <div class="phone">
-          <div class="phone-notch"></div>
-          <div class="phone-screen">
-            <span class="phone-logo">🌿</span>
-            <span class="phone-title">Food.io</span>
-            <div class="phone-bar"></div>
-            <div class="phone-line"></div>
-            <div class="phone-line short"></div>
-            <div class="phone-tabs">
-              <span></span><span></span><span></span><span></span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
+  </div>
 
 </main>
-
-<!-- ========== FOOTER ========== -->
-<footer class="footer">
-  <div class="container footer-inner">
-    <div class="footer-brand">
-      <span class="footer-logo">Food.io</span>
-      <p class="footer-tagline">Connecting people to real food, real history, real sources.</p>
-    </div>
-    <nav class="footer-nav">
-      <a href="#explore">Explore</a>
-      <a href="#features">What You Get</a>
-      <a href="#how-it-works">How It Works</a>
-      <a href="#meal-planner">Meal Planner</a>
-    </nav>
-    <p class="footer-fine">Powered by AI with live web search · Web &amp; mobile</p>
-  </div>
-</footer>
 
 <!-- ========== AUTH MODAL ========== -->
 <div class="overlay" id="authOverlay" style="display:none" onclick="if(event.target===this) closeAuth()">

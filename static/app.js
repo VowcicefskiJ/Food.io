@@ -986,6 +986,14 @@ function showToast(msg) {
 // AUTH MODAL
 // =========================================
 
+function openPlanner() {
+  document.getElementById('plannerOverlay').style.display = 'flex';
+}
+
+function closePlanner() {
+  document.getElementById('plannerOverlay').style.display = 'none';
+}
+
 function openAuth() {
   authMode = 'login';
   applyAuthMode();
