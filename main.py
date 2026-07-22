@@ -774,10 +774,39 @@ def _wikipedia_image(ingredient: str) -> Optional[str]:
         return None
 
 
+def _openverse_image(ingredient: str) -> Optional[str]:
+    """Search Openverse (openly-licensed photos) for the raw ingredient.
+    Biased toward a plain product shot rather than a plated dish."""
+    try:
+        query = urllib.parse.urlencode({
+            "q": f"{ingredient.strip()} ingredient",
+            "page_size": "3",
+            "mature": "false",
+            "license_type": "all",
+        })
+        url = f"https://api.openverse.org/v1/images/?{query}"
+        req = urllib.request.Request(url, headers={"User-Agent": "Food.io/1.0"})
+        with urllib.request.urlopen(req, timeout=6) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        for r in (data.get("results") or []):
+            src = r.get("url") or r.get("thumbnail")
+            if src:
+                return src
+    except Exception:
+        pass
+    return None
+
+
 def _ingredient_photo(ingredient: str) -> Optional[str]:
-    """Prefer a clean product shot of the actual ingredient; fall back to
-    Wikipedia's lead image for anything TheMealDB doesn't cover."""
-    return _themealdb_image(ingredient) or _wikipedia_image(ingredient)
+    """Prefer a clean product shot of the ACTUAL ingredient:
+    1) TheMealDB — plain-background ingredient photos (best)
+    2) Openverse — searched for the raw ingredient
+    3) Wikipedia — lead image, as a last resort."""
+    return (
+        _themealdb_image(ingredient)
+        or _openverse_image(ingredient)
+        or _wikipedia_image(ingredient)
+    )
 
 
 def _reverse_geocode(latitude: float, longitude: float) -> Optional[str]:

@@ -86,7 +86,8 @@ async function searchIngredient() {
   const saveBtn = document.getElementById('saveSearchBtn');
   if (saveBtn) { saveBtn.textContent = '☆ Save'; saveBtn.classList.remove('saved'); }
   const ph = document.getElementById('dashPhoto');
-  if (ph) { ph.innerHTML = ''; ph.classList.remove('has-img'); }
+  if (ph) { ph.innerHTML = ''; ph.classList.remove('has-img'); ph.onclick = null; }
+  currentPhotoUrl = null;
   const dsi = document.getElementById('dashSearchInput');
   if (dsi) dsi.value = '';
 
@@ -119,25 +120,41 @@ async function searchIngredient() {
   lbl.textContent = 'Explore Ingredient';
 }
 
+let currentPhotoUrl = null;
+
 async function doFetchImage(ingredient) {
   try {
     const data = await post('/ingredient/image', { ingredient, language: 'English' });
     if (data && data.image_url) {
       const url = data.image_url;
-      // Small photo in the topbar…
+      currentPhotoUrl = url;
+      // Small photo in the topbar (click to enlarge)…
       const ph = document.getElementById('dashPhoto');
       if (ph) {
         ph.innerHTML = `<img src="${escAttr(url)}" alt="${escAttr(ingredient)}" onerror="this.closest('.dash-photo').classList.remove('has-img'); this.remove();"/>`;
         ph.classList.add('has-img');
+        ph.onclick = () => openLightbox(url);
       }
-      // …and the large hero photo on the Overview tab.
+      // …and the large hero photo on the Overview tab (click to enlarge).
       const slot = document.getElementById('ingredientImageSlot');
       if (slot) {
         slot.innerHTML = `<img class="ingredient-photo" src="${escAttr(url)}" alt="${escAttr(ingredient)}" onerror="this.parentElement.style.display='none'"/>`;
-        slot.style.display = 'block';
+        slot.style.display = 'flex';
+        slot.onclick = () => openLightbox(url);
       }
     }
   } catch (_) { /* image is best-effort */ }
+}
+
+function openLightbox(url) {
+  if (!url) return;
+  document.getElementById('lightboxImg').src = url;
+  document.getElementById('lightbox').style.display = 'flex';
+}
+
+function closeLightbox() {
+  document.getElementById('lightbox').style.display = 'none';
+  document.getElementById('lightboxImg').src = '';
 }
 
 // Search again from inside the dashboard topbar.
